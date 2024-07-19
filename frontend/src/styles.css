@@ -1,0 +1,73 @@
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: #D9D9D9;
+}
+
+h1, h2, h3, p, span, label {
+  color: #3718B1;
+}
+
+.dashboard {
+  padding: 20px;
+}
+
+.recharts-wrapper {
+  background-color: #FFF;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.menu-button {
+  background-color: #333;
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  cursor: pointer;
+}
+
+.menu {
+  display: flex;
+  flex-direction: column;
+  position: absolute;
+  top: 50px;
+  left: 10px;
+  background: #fff;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  padding: 10px;
+}
+
+.menu button {
+  margin: 5px 0;
+  padding: 10px;
+  border: none;
+  background-color: #007bff;
+  color: white;
+  cursor: pointer;
+}
+
+.company-select {
+  margin-bottom: 20px;
+}
+
+.market-sentiments {
+  padding: 20px;
+}
+
+.sentiment-cards {
+  display: flex;
+  justify-content: space-between;
+}
+
+.sentiment-card {
+  background-color: #ccc;
+  padding: 20px;
+  margin: 10px;
+  border: 1px solid #000;
+  text-align: center;
+  width: 200px;
+}
