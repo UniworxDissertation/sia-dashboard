@@ -2,6 +2,9 @@ from django.http import JsonResponse
 from dashboard.scripts.apis import fetch_stock_data
 from dashboard.scripts.apis import fetch_user_sentiment
 from dashboard.scripts.apis import sentiment_segregation
+from dashboard.scripts.apis import fetch_sentiment_and_stock_data
+
+from dashboard.scripts.apis import fetch_portfolio_insights
 
 
 def stock_data(request):
@@ -19,4 +22,19 @@ def news_sentiment_view(request):
 
 def process_sentiment(request):
     data = sentiment_segregation.process_sentiment_data(request)
+    return data
+
+
+def sentiment_and_stock_data_view(request):
+    ticker = request.GET.get('ticker', '')
+    sentiment_data, stock_details = fetch_sentiment_and_stock_data.fetch_sentiment_and_stock_data(ticker)
+
+    return JsonResponse({
+        'sentimentData': sentiment_data,
+        'stockData': stock_details
+    })
+
+
+def portfolio_insights(request):
+    data = fetch_portfolio_insights.portfolio_insights(request)
     return data

@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import Menu from './Menu';
+import Header from './Header';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 
 const Dashboard = () => {
   const [data, setData] = useState([]);
@@ -9,6 +12,8 @@ const Dashboard = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState('');
   const [companies, setCompanies] = useState([]);
+  const [startDate, setStartDate] = useState(new Date('2020-01-01'));
+  const [endDate, setEndDate] = useState(new Date());
 
   useEffect(() => {
     axios.get('http://localhost:8000/api/stock-data/')
@@ -19,16 +24,17 @@ const Dashboard = () => {
         setSelectedCompany(companyList[0]);
       })
       .catch(error => {
-        console.error("There was an error fetching the data!", error);
+        console.error('There was an error fetching the data!', error);
       });
   }, []);
 
   useEffect(() => {
     if (selectedCompany) {
-      const filtered = data.filter(item => item.symbol === selectedCompany);
+      const filtered = data.filter(item => item.symbol === selectedCompany &&
+        new Date(item.date) >= startDate && new Date(item.date) <= endDate);
       setFilteredData(filtered);
     }
-  }, [selectedCompany, data]);
+  }, [selectedCompany, data, startDate, endDate]);
 
   const handleCompanyChange = (e) => {
     setSelectedCompany(e.target.value);
@@ -36,10 +42,7 @@ const Dashboard = () => {
 
   return (
     <div className="dashboard">
-      <div className="header">
-        <button className="menu-button" onClick={() => setMenuOpen(!menuOpen)}>Menu</button>
-        {menuOpen && <Menu />}
-      </div>
+      <Header />
       <div className="company-select">
         <label htmlFor="company">Select Company: </label>
         <select id="company" value={selectedCompany} onChange={handleCompanyChange}>
@@ -47,6 +50,29 @@ const Dashboard = () => {
             <option key={company} value={company}>{company}</option>
           ))}
         </select>
+      </div>
+      <div className="custom-date-picker">
+        <label>Start Date:</label>
+        <DatePicker
+          selected={startDate}
+          onChange={(date) => setStartDate(date)}
+          selectsStart
+          startDate={startDate}
+          endDate={endDate}
+          className="custom-date-input"
+          dateFormat="MMM d, yyyy"
+        />
+        <label>End Date:</label>
+        <DatePicker
+          selected={endDate}
+          onChange={(date) => setEndDate(date)}
+          selectsEnd
+          startDate={startDate}
+          endDate={endDate}
+          minDate={startDate}
+          className="custom-date-input"
+          dateFormat="MMM d, yyyy"
+        />
       </div>
       <h2>Stock Performance Graph</h2>
       <LineChart width={1000} height={500} data={filteredData}>

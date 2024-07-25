@@ -1,13 +1,17 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 
-const Menu = () => {
+const Menu = ({ menuOpen, onMouseEnter, onMouseLeave }) => {
   return (
-    <div className="menu">
-      <Link to="/">Dashboard</Link>
-      <Link to="/news-sentiment">News Sentiment</Link>
+    <div
+      className="menu-list"
+      style={{ display: menuOpen ? 'block' : 'none' }}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+    >
+      <a href="/">Dashboard</a>
+      <a href="/news-sentiment">News Sentiment</a>
     </div>
   );
-}
+};
 
 export default Menu;
