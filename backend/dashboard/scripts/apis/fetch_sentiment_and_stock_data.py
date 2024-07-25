@@ -3,10 +3,11 @@ import json
 from datetime import datetime
 from collections import defaultdict
 from statistics import mean
+from scipy.stats import pearsonr
 from django.conf import settings
+from django.http import JsonResponse
 from dashboard.scripts.apis import fetch_stock_data
 from dashboard.scripts.apis import sentiment_segregation
-
 
 
 def fetch_sentiment_and_stock_data(ticker):
@@ -50,4 +51,24 @@ def fetch_sentiment_and_stock_data(ticker):
     # Sort aggregated sentiment data by date
     aggregated_sentiment_data = sorted(aggregated_sentiment_data, key=lambda x: x['date'])
 
-    return aggregated_sentiment_data, stock_data
+    # Ensure both sentiment and stock data are aligned by date
+    sentiment_scores = []
+    stock_prices = []
+    dates = set([item['date'] for item in aggregated_sentiment_data]).intersection(
+        set([item['date'] for item in stock_data])
+    )
+
+    for date in dates:
+        sentiment_scores.append(
+            next(item['Sentiment_Score'] for item in aggregated_sentiment_data if item['date'] == date))
+        stock_prices.append(next(item['close'] for item in stock_data if item['date'] == date))
+
+    # Calculate correlation
+    correlation, p_value = pearsonr(sentiment_scores, stock_prices) if sentiment_scores and stock_prices else (
+    None, None)
+
+    # Compute volatility
+    daily_returns = filtered_stock_data['close'].pct_change().dropna()
+    volatility = daily_returns.std() if not daily_returns.empty else None
+
+    return aggregated_sentiment_data, stock_data, correlation, volatility

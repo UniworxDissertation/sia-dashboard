@@ -3,6 +3,7 @@ from django.http import JsonResponse
 from scipy.optimize import minimize
 from dashboard.scripts.apis import fetch_stock_data
 
+
 def portfolio_insights(request):
     # Read the CSV data
     data = fetch_stock_data.read_csv()
@@ -56,22 +57,13 @@ def portfolio_insights(request):
     max_sharpe_idx = np.argmax(results[2])
     optimal_weights = weights_record[max_sharpe_idx]
 
-    # Adjust weights according to risk profile
-    volatilities = returns.std()
-    if risk_profile == 'low':
-        optimal_weights = optimal_weights / volatilities
-        optimal_weights /= np.sum(optimal_weights)
-    elif risk_profile == 'high':
-        optimal_weights = optimal_weights * volatilities
-        optimal_weights /= np.sum(optimal_weights)
-
     # Calculate performance of the optimal portfolio
-    p_returns, p_volatility = portfolio_performance(optimal_weights, mean_returns, cov_matrix)
-    sharpe_ratio = (p_returns - risk_free_rate) / p_volatility
+    p_returns, p_volatility = results[0, max_sharpe_idx], results[1, max_sharpe_idx]
+    sharpe_ratio = results[2, max_sharpe_idx]
 
     # Prepare response data
     weights_dict = dict(zip(close_prices.columns, optimal_weights))
-    volatility_dict = dict(zip(close_prices.columns, volatilities))
+    volatility_dict = dict(zip(close_prices.columns, returns.std()))
     performance_dict = {
         "expected_annual_return": p_returns,
         "annual_volatility": p_volatility,
@@ -85,8 +77,3 @@ def portfolio_insights(request):
     }
 
     return JsonResponse(response_data)
-
-def portfolio_performance(weights, mean_returns, cov_matrix):
-    returns = np.dot(weights, mean_returns)
-    volatility = np.sqrt(np.dot(weights.T, np.dot(cov_matrix, weights)))
-    return returns, volatility

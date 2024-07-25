@@ -26,13 +26,22 @@ def process_sentiment(request):
 
 
 def sentiment_and_stock_data_view(request):
-    ticker = request.GET.get('ticker', '')
-    sentiment_data, stock_details = fetch_sentiment_and_stock_data.fetch_sentiment_and_stock_data(ticker)
+    ticker = request.GET.get('ticker')
+    if not ticker:
+        return JsonResponse({'error': 'Ticker parameter is required'}, status=400)
 
-    return JsonResponse({
-        'sentimentData': sentiment_data,
-        'stockData': stock_details
-    })
+    try:
+        sentiment_data, stock_data, correlation, volatility = (fetch_sentiment_and_stock_data.
+                                                               fetch_sentiment_and_stock_data(ticker))
+        response_data = {
+            'sentimentData': sentiment_data,
+            'stockData': stock_data,
+            'correlation': correlation,
+            'volatility': volatility
+        }
+        return JsonResponse(response_data)
+    except ValueError as e:
+        return JsonResponse({'error': str(e)}, status=500)
 
 
 def portfolio_insights(request):

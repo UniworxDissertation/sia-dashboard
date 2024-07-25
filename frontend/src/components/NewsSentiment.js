@@ -13,6 +13,8 @@ const NewsSentiment = () => {
   const [selectedCompany, setSelectedCompany] = useState(null);
   const [sentimentData, setSentimentData] = useState([]);
   const [stockData, setStockData] = useState([]);
+  const [correlation, setCorrelation] = useState(null);
+  const [volatility, setVolatility] = useState(null);
   const [showGraphs, setShowGraphs] = useState(false);
   const tickers = ["XOM", "CVX", "NEE", "BP", "SHEL", "JPM", "GS", "BAC", "MS", "WFC"]; // Example tickers
 
@@ -44,6 +46,8 @@ const NewsSentiment = () => {
     .then(response => {
       setSentimentData(response.data.sentimentData);
       setStockData(response.data.stockData);
+      setCorrelation(response.data.correlation);
+      setVolatility(response.data.volatility);
     })
     .catch(error => {
       console.error("There was an error fetching the data!", error);
@@ -123,8 +127,13 @@ const NewsSentiment = () => {
               <Line type="monotone" dataKey="close" stroke="#82ca9d" />
             </LineChart>
           </div>
+          <div className="correlation">
+            <h3>Correlation and Volatility Analysis</h3>
+            <p><strong>Correlation between Sentiment Score and Stock Price:</strong> {correlation !== null ? correlation.toFixed(2) : 'N/A'}</p>
+            <p><strong>Stock Price Volatility:</strong> {volatility !== null ? volatility.toFixed(4) : 'N/A'}</p>
+          </div>
         </div>
-)}
+      )}
 
       <PortfolioInsights />
     </div>
