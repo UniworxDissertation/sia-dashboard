@@ -14,6 +14,7 @@ const NewsSentiment = () => {
   const [sentimentData, setSentimentData] = useState([]);
   const [stockData, setStockData] = useState([]);
   const [correlation, setCorrelation] = useState(null);
+  const [correlationMeasure, setCorrelationMeasure] = useState('');
   const [volatility, setVolatility] = useState(null);
   const [showGraphs, setShowGraphs] = useState(false);
   const tickers = ["XOM", "CVX", "NEE", "BP", "SHEL", "JPM", "GS", "BAC", "MS", "WFC"]; // Example tickers
@@ -48,6 +49,7 @@ const NewsSentiment = () => {
       setStockData(response.data.stockData);
       setCorrelation(response.data.correlation);
       setVolatility(response.data.volatility);
+      setCorrelationMeasure(determineCorrelationMeasure(response.data.correlation));
     })
     .catch(error => {
       console.error("There was an error fetching the data!", error);
@@ -56,6 +58,24 @@ const NewsSentiment = () => {
 
   const handleCloseClick = () => {
     setShowGraphs(false);
+  };
+
+  const determineCorrelationMeasure = (correlation) => {
+    if (correlation > 0.7) {
+      return 'Strong Positive Correlation';
+    } else if (correlation > 0.4) {
+      return 'Moderate Positive Correlation';
+    } else if (correlation > 0.1) {
+      return 'Weak Positive Correlation';
+    } else if (correlation > -0.1) {
+      return 'No Correlation';
+    } else if (correlation > -0.4) {
+      return 'Weak Negative Correlation';
+    } else if (correlation > -0.7) {
+      return 'Moderate Negative Correlation';
+    } else {
+      return 'Strong Negative Correlation';
+    }
   };
 
   const CustomTooltip = ({ active, payload, label }) => {
@@ -130,6 +150,7 @@ const NewsSentiment = () => {
           <div className="correlation">
             <h3>Correlation and Volatility Analysis</h3>
             <p><strong>Correlation between Sentiment Score and Stock Price:</strong> {correlation !== null ? correlation.toFixed(2) : 'N/A'}</p>
+            <p><strong>Correlation Measure:</strong> {correlationMeasure}</p>
             <p><strong>Stock Price Volatility:</strong> {volatility !== null ? volatility.toFixed(4) : 'N/A'}</p>
           </div>
         </div>

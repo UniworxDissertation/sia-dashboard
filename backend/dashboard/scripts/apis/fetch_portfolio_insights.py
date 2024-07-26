@@ -1,7 +1,22 @@
 import numpy as np
 from django.http import JsonResponse
-from scipy.optimize import minimize
+
 from dashboard.scripts.apis import fetch_stock_data
+
+
+def calculate_investment_growth(start_date, end_date, weights, stock_data, initial_investment=100):
+    start_prices = stock_data[stock_data['date'] == start_date].set_index('symbol')['close']
+    end_prices = stock_data[stock_data['date'] == end_date].set_index('symbol')['close']
+
+    if start_prices.empty or end_prices.empty:
+        return None
+
+    growth = (end_prices / start_prices) * weights
+    total_growth = (growth.sum() - 1)  # Fractional growth
+
+    portfolio_value = initial_investment * (1 + total_growth)  # Calculate the portfolio value
+
+    return portfolio_value
 
 
 def portfolio_insights(request):
@@ -24,13 +39,15 @@ def portfolio_insights(request):
 
     # Get risk profile from request
     risk_profile = request.GET.get('risk_profile', 'moderate').lower()
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
 
     # Set risk-free rate according to risk profile
     risk_free_rate = 0.01  # default to moderate
     if risk_profile == 'low':
-        risk_free_rate = 0.02
-    elif risk_profile == 'high':
         risk_free_rate = 0.0
+    elif risk_profile == 'high':
+        risk_free_rate = 0.02
 
     # Initialize arrays to store simulation results
     results = np.zeros((3, num_portfolios))
@@ -61,6 +78,11 @@ def portfolio_insights(request):
     p_returns, p_volatility = results[0, max_sharpe_idx], results[1, max_sharpe_idx]
     sharpe_ratio = results[2, max_sharpe_idx]
 
+    # Calculate investment growth if dates are provided
+    investment_growth = None
+    if start_date and end_date:
+        investment_growth = calculate_investment_growth(start_date, end_date, optimal_weights, data)
+
     # Prepare response data
     weights_dict = dict(zip(close_prices.columns, optimal_weights))
     volatility_dict = dict(zip(close_prices.columns, returns.std()))
@@ -74,6 +96,7 @@ def portfolio_insights(request):
         "weights": weights_dict,
         "volatilities": volatility_dict,
         "performance": performance_dict,
+        "investment_growth": investment_growth,
     }
 
     return JsonResponse(response_data)

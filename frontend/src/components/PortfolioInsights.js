@@ -1,15 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 
 const PortfolioInsights = () => {
   const [data, setData] = useState([]);
   const [zeroAllocation, setZeroAllocation] = useState([]);
   const [riskProfile, setRiskProfile] = useState('moderate');
+  const [startDate, setStartDate] = useState(new Date());
+  const [endDate, setEndDate] = useState(new Date());
+  const [investmentGrowth, setInvestmentGrowth] = useState(null);
 
-  const fetchPortfolioData = (profile) => {
+  const fetchPortfolioData = (profile, start, end) => {
     axios.get('http://localhost:8000/api/portfolio-insights/', {
-      params: { risk_profile: profile }
+      params: { risk_profile: profile, start_date: start, end_date: end }
     })
     .then(response => {
       const weights = response.data.weights;
@@ -29,6 +34,7 @@ const PortfolioInsights = () => {
 
       setData(formattedData);
       setZeroAllocation(zeroAllocationData);
+      setInvestmentGrowth(response.data.investment_growth);
     })
     .catch(error => {
       console.error('Error fetching portfolio insights:', error);
@@ -36,8 +42,8 @@ const PortfolioInsights = () => {
   };
 
   useEffect(() => {
-    fetchPortfolioData(riskProfile);
-  }, [riskProfile]);
+    fetchPortfolioData(riskProfile, startDate.toISOString().split('T')[0], endDate.toISOString().split('T')[0]);
+  }, [riskProfile, startDate, endDate]);
 
   const handleRiskProfileChange = (event) => {
     setRiskProfile(event.target.value);
@@ -58,6 +64,11 @@ const PortfolioInsights = () => {
     return null;
   };
 
+  const isWeekday = date => {
+    const day = date.getDay();
+    return day !== 0 && day !== 6;
+  };
+
   return (
     <div className="portfolio-insights">
       <h2>Portfolio Diversification Insights</h2>
@@ -69,35 +80,70 @@ const PortfolioInsights = () => {
           <option value="high">High Risk</option>
         </select>
       </div>
-      <PieChart width={600} height={350}>
-        <Pie
-          data={data}
-          cx={300}
-          cy={150}
-          labelLine={false}
-          label={({ name, percent }) => (percent * 100).toFixed(0) > 0 ? `${name}: ${(percent * 100).toFixed(0)}%` : ''}  // Updated line
-          outerRadius={120}
-          fill="#8884d8"
-          dataKey="value"
-        >
-          {data.map((entry, index) => (
-            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-          ))}
-        </Pie>
-        <Tooltip content={<CustomTooltip />} />
-        <Legend layout="horizontal" verticalAlign="bottom" align="center" />
-      </PieChart>
+      <div className="date-picker-container">
+        <label htmlFor="start-date">Start Date: </label>
+        <DatePicker
+          selected={startDate}
+          onChange={(date) => setStartDate(date)}
+          selectsStart
+          startDate={startDate}
+          endDate={endDate}
+          filterDate={isWeekday}
+          dateFormat="yyyy-MM-dd"
+        />
+        <label htmlFor="end-date">End Date: </label>
+        <DatePicker
+          selected={endDate}
+          onChange={(date) => setEndDate(date)}
+          selectsEnd
+          startDate={startDate}
+          endDate={endDate}
+          minDate={startDate}
+          filterDate={isWeekday}
+          dateFormat="yyyy-MM-dd"
+        />
+      </div>
+      <div className="insights-container">
+        <div className="chart-container">
+          <PieChart width={600} height={350}>
+            <Pie
+              data={data}
+              cx={300}
+              cy={150}
+              labelLine={false}
+              label={({ name, percent }) => (percent * 100).toFixed(0) > 0 ? `${name}: ${(percent * 100).toFixed(0)}%` : ''}  // Updated line
+              outerRadius={120}
+              fill="#8884d8"
+              dataKey="value"
+            >
+              {data.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+              ))}
+            </Pie>
+            <Tooltip content={<CustomTooltip />} />
+            <Legend layout="horizontal" verticalAlign="bottom" align="center" />
+          </PieChart>
 
-      {zeroAllocation.length > 0 && (
-        <div className="zero-allocation">
-          <h3>Companies with 0% Allocation</h3>
-          <ul>
-            {zeroAllocation.map(company => (
-              <li key={company}>{company}</li>
-            ))}
-          </ul>
+          {zeroAllocation.length > 0 && (
+            <div className="zero-allocation">
+              <h3>Companies with 0% Allocation</h3>
+              <ul>
+                {zeroAllocation.map(company => (
+                  <li key={company}>{company}</li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
-      )}
+
+        {investmentGrowth !== null && (
+          <div className="investment-growth">
+            <h3>Investment Growth</h3>
+            <p>If you had invested $100 on {startDate.toISOString().split('T')[0]},
+              it would be worth ${investmentGrowth.toFixed(2)} on {endDate.toISOString().split('T')[0]}.</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
