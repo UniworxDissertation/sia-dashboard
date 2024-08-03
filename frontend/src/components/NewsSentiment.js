@@ -16,6 +16,7 @@ const NewsSentiment = () => {
   const [correlation, setCorrelation] = useState(null);
   const [correlationMeasure, setCorrelationMeasure] = useState('');
   const [volatility, setVolatility] = useState(null);
+  const [overallCorrelation, setOverallCorrelation] = useState(null);
   const [showGraphs, setShowGraphs] = useState(false);
   const tickers = ["XOM", "CVX", "NEE", "BP", "SHEL", "JPM", "GS", "BAC", "MS", "WFC"]; // Example tickers
 
@@ -27,7 +28,8 @@ const NewsSentiment = () => {
       }
     })
     .then(response => {
-      setSentiments(response.data);
+      setSentiments(response.data.sentiment_data);
+      setOverallCorrelation(response.data.overall_correlation);
     })
     .catch(error => {
       console.error("There was an error fetching the sentiment data!", error);
@@ -60,23 +62,23 @@ const NewsSentiment = () => {
     setShowGraphs(false);
   };
 
-  const determineCorrelationMeasure = (correlation) => {
-    if (correlation > 0.7) {
-      return 'Strong Positive Correlation';
-    } else if (correlation > 0.4) {
-      return 'Moderate Positive Correlation';
-    } else if (correlation > 0.1) {
-      return 'Weak Positive Correlation';
-    } else if (correlation > -0.1) {
-      return 'No Correlation';
-    } else if (correlation > -0.4) {
-      return 'Weak Negative Correlation';
-    } else if (correlation > -0.7) {
-      return 'Moderate Negative Correlation';
-    } else {
-      return 'Strong Negative Correlation';
-    }
-  };
+ const determineCorrelationMeasure = (correlation) => {
+  if (correlation > 0.7) {
+    return 'a Strong Positive Correlation, meaning when market sentiment is positive, stock prices usually rise significantly.';
+  } else if (correlation > 0.4) {
+    return 'a Moderate Positive Correlation, meaning a positive market sentiment often leads to an increase in stock prices.';
+  } else if (correlation > 0.1) {
+    return 'a Weak Positive Correlation, meaning there is a slight tendency for stock prices to rise with positive market sentiment.';
+  } else if (correlation > -0.1) {
+    return 'No Correlation, meaning market sentiment and stock prices do not show a consistent pattern.';
+  } else if (correlation > -0.4) {
+    return 'a Weak Negative Correlation, meaning there is a slight tendency for stock prices to fall with positive market sentiment.';
+  } else if (correlation > -0.7) {
+    return 'a Moderate Negative Correlation, meaning a positive market sentiment often leads to a decrease in stock prices.';
+  } else {
+    return 'a Strong Negative Correlation, meaning when market sentiment is positive, stock prices usually fall significantly.';
+  }
+};
 
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
@@ -156,6 +158,15 @@ const NewsSentiment = () => {
         </div>
       )}
 
+      {overallCorrelation !== null && (
+      <div className="overall-correlation">
+        <h3>Overall Correlation Analysis</h3>
+        <p><strong>Overall Correlation between Market Sentiment and Stock Price across all companies:</strong> {overallCorrelation.toFixed(2)}</p>
+        <p>
+          Statistically, it is found that market sentiment and stock variations have {determineCorrelationMeasure(overallCorrelation)}.
+        </p>
+      </div>
+      )}
       <PortfolioInsights />
     </div>
   );

@@ -8,6 +8,8 @@ from dashboard.scripts.apis import fetch_portfolio_insights
 from dashboard.scripts.apis import fetch_alpha_sentiment_and_stock_data
 from dashboard.scripts.apis import alpha_sentiment_segregation
 
+from dashboard.scripts.apis.fetch_sentiment_and_stock_data import fetch_aggregated_correlation
+
 
 def stock_data(request):
     data = fetch_stock_data.read_csv()
@@ -23,8 +25,19 @@ def news_sentiment_view(request):
 
 
 def process_sentiment(request):
-    data = sentiment_segregation.process_sentiment_data(request)
-    return data
+    tickers = request.GET.get('tickers', '').split(',')
+    if not tickers:
+        return JsonResponse({'error': 'No tickers provided'}, status=400)
+
+    sentiment_data = sentiment_segregation.process_sentiment_data(request)
+    overall_correlation = fetch_aggregated_correlation(tickers)
+
+    response_data = {
+        'sentiment_data': {ticker: data for ticker, data in sentiment_data.items()},
+        'overall_correlation': overall_correlation
+    }
+
+    return JsonResponse(response_data)
 
 
 def sentiment_and_stock_data_view(request):

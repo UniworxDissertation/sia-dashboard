@@ -65,10 +65,23 @@ def fetch_sentiment_and_stock_data(ticker):
 
     # Calculate correlation
     correlation, p_value = pearsonr(sentiment_scores, stock_prices) if sentiment_scores and stock_prices else (
-    None, None)
+        None, None)
 
     # Compute volatility
     daily_returns = filtered_stock_data['close'].pct_change().dropna()
     volatility = daily_returns.std() if not daily_returns.empty else None
 
     return aggregated_sentiment_data, stock_data, correlation, volatility
+
+
+def fetch_aggregated_correlation(tickers):
+    correlations = []
+
+    for ticker in tickers:
+        _, _, correlation, _ = fetch_sentiment_and_stock_data(ticker)
+        if correlation is not None:
+            correlations.append(correlation)
+
+    overall_correlation = mean(correlations) if correlations else None
+    return overall_correlation
+

@@ -57,4 +57,4 @@ def process_sentiment_data(request):
                 'sentiment': sentiment_label
             }
 
-    return JsonResponse(sentiment_results)
+    return sentiment_results

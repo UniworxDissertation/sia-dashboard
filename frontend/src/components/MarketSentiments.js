@@ -8,6 +8,24 @@ import { MdClose } from 'react-icons/md';
 import Tooltip from 'react-tooltip-lite';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend } from 'recharts';
 
+const determineCorrelationMeasure = (correlation) => {
+  if (correlation > 0.7) {
+    return 'a Strong Positive Correlation, meaning when market sentiment is positive, stock prices usually rise significantly.';
+  } else if (correlation > 0.4) {
+    return 'a Moderate Positive Correlation, meaning a positive market sentiment often leads to an increase in stock prices.';
+  } else if (correlation > 0.1) {
+    return 'a Weak Positive Correlation, meaning there is a slight tendency for stock prices to rise with positive market sentiment.';
+  } else if (correlation > -0.1) {
+    return 'No Correlation, meaning market sentiment and stock prices do not show a consistent pattern.';
+  } else if (correlation > -0.4) {
+    return 'a Weak Negative Correlation, meaning there is a slight tendency for stock prices to fall with positive market sentiment.';
+  } else if (correlation > -0.7) {
+    return 'a Moderate Negative Correlation, meaning a positive market sentiment often leads to a decrease in stock prices.';
+  } else {
+    return 'a Strong Negative Correlation, meaning when market sentiment is positive, stock prices usually fall significantly.';
+  }
+};
+
 const MarketSentiments = () => {
   const [sentiments, setSentiments] = useState([]);
   const [selectedCompany, setSelectedCompany] = useState(null);
@@ -17,6 +35,7 @@ const MarketSentiments = () => {
   const [correlationMeasure, setCorrelationMeasure] = useState('');
   const [volatility, setVolatility] = useState(null);
   const [showGraphs, setShowGraphs] = useState(false);
+  const [overallCorrelation, setOverallCorrelation] = useState(null);
   const tickers = ["XOM", "CVX", "NEE", "BP", "SHEL", "JPM", "GS", "BAC", "MS", "WFC"]; // Example tickers
 
   useEffect(() => {
@@ -27,7 +46,8 @@ const MarketSentiments = () => {
       }
     })
     .then(response => {
-      setSentiments(response.data);
+      setSentiments(response.data.sentiments);
+      setOverallCorrelation(response.data.overallCorrelation);
     })
     .catch(error => {
       console.error("There was an error fetching the sentiment data!", error);
@@ -58,24 +78,6 @@ const MarketSentiments = () => {
 
   const handleCloseClick = () => {
     setShowGraphs(false);
-  };
-
-  const determineCorrelationMeasure = (correlation) => {
-    if (correlation > 0.7) {
-      return 'Strong Positive Correlation';
-    } else if (correlation > 0.4) {
-      return 'Moderate Positive Correlation';
-    } else if (correlation > 0.1) {
-      return 'Weak Positive Correlation';
-    } else if (correlation > -0.1) {
-      return 'No Correlation';
-    } else if (correlation > -0.4) {
-      return 'Weak Negative Correlation';
-    } else if (correlation > -0.7) {
-      return 'Moderate Negative Correlation';
-    } else {
-      return 'Strong Negative Correlation';
-    }
   };
 
   const CustomTooltip = ({ active, payload, label }) => {
@@ -155,6 +157,12 @@ const MarketSentiments = () => {
           </div>
         </div>
       )}
+
+      <div className="overall-correlation">
+        <h3>Overall Correlation Analysis</h3>
+        <p><strong>Overall Correlation between Market Sentiment and Stock Price across all companies:</strong> {overallCorrelation !== null ? overallCorrelation.toFixed(2) : 'N/A'}</p>
+        <p>Statistically, it is found that market sentiment and stock variations have {determineCorrelationMeasure(overallCorrelation)}.</p>
+      </div>
 
       <PortfolioInsights />
     </div>

@@ -4,6 +4,8 @@ from statistics import mean
 from django.http import JsonResponse
 from django.conf import settings
 
+from dashboard.scripts.apis.fetch_alpha_sentiment_and_stock_data import fetch_alpha_sentiment_and_stock_data
+
 
 def fetch_news_sentiment(tickers):
     response_dict = {}
@@ -37,6 +39,7 @@ def alpha_process_sentiment_data(request):
     data = fetch_news_sentiment(tickers_list)
 
     sentiment_results = {}
+    overall_correlations = []
 
     for ticker, ticker_data in data.items():
         sentiment_scores = [
@@ -54,4 +57,14 @@ def alpha_process_sentiment_data(request):
                 'sentiment': sentiment_label
             }
 
-    return JsonResponse(sentiment_results)
+            # Calculate correlation for overall sentiment
+            stock_data, _, correlation, _ = fetch_alpha_sentiment_and_stock_data(ticker)
+            if correlation is not None:
+                overall_correlations.append(correlation)
+
+    overall_correlation = mean(overall_correlations) if overall_correlations else None
+
+    return JsonResponse({
+        'sentiments': sentiment_results,
+        'overallCorrelation': overall_correlation
+    })
