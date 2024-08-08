@@ -31,8 +31,15 @@ def fetch_fundamental_data(api_key, symbol):
     response = requests.get(url)
     data = response.json()
 
-    if data and not isinstance(data, dict):
-        return pd.Series(data, name=symbol)
+    required_fields = ['Symbol', 'MarketCapitalization', 'PERatio', 'PEGRatio', 'BookValue', 'DividendPerShare',
+                       'DividendYield', 'EPS', 'RevenuePerShareTTM', 'ProfitMargin', 'OperatingMarginTTM',
+                       'ReturnOnAssetsTTM', 'ReturnOnEquityTTM', 'RevenueTTM', 'GrossProfitTTM', 'DilutedEPSTTM',
+                       'QuarterlyEarningsGrowthYOY', 'QuarterlyRevenueGrowthYOY', 'AnalystTargetPrice', 'TrailingPE',
+                       'ForwardPE', 'PriceToSalesRatioTTM', 'PriceToBookRatio', 'EVToRevenue', 'EVToEBITDA', 'Beta',
+                       '52WeekHigh', '52WeekLow', '50DayMovingAverage', '200DayMovingAverage']
+
+    if data and all(field in data for field in required_fields):
+        return pd.Series({field: data[field] for field in required_fields}, name=symbol)
     else:
         print(f"Error fetching fundamental data for {symbol}: {data['Note'] if 'Note' in data else data}")
         return None
@@ -72,5 +79,13 @@ all_fundamentals = pd.concat([energy_fundamentals, financial_fundamentals])
 
 # Save fundamental data
 all_fundamentals.to_csv('fundamental_data.csv')
+
+# Merge historical financial data with fundamental data
+combined_data.reset_index(inplace=True)
+all_fundamentals.reset_index(inplace=True)
+final_data = pd.merge(combined_data, all_fundamentals, how='left', left_on='symbol', right_on='Symbol')
+
+# Save the merged data to CSV
+final_data.to_csv('merged_financial_data.csv', index=False)
 
 print("Data has been successfully fetched and saved to CSV files!")

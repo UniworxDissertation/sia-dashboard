@@ -23,8 +23,8 @@ const PortfolioInsights = () => {
       const zeroAllocationData = [];
 
       Object.keys(weights).forEach(key => {
-        const value = weights[key] * 100;  // Convert to percentage
-        const volatility = volatilities[key] * 100;  // Convert to percentage
+        const value = weights[key] * 100;
+        const volatility = volatilities[key] * 100;
         if (value.toFixed(0) > 0) {
           formattedData.push({ name: key, value, volatility });
         } else {
@@ -111,7 +111,7 @@ const PortfolioInsights = () => {
               cx={300}
               cy={150}
               labelLine={false}
-              label={({ name, percent }) => (percent * 100).toFixed(0) > 0 ? `${name}: ${(percent * 100).toFixed(0)}%` : ''}  // Updated line
+              label={({ name, percent }) => (percent * 100).toFixed(0) > 0 ? `${name}: ${(percent * 100).toFixed(0)}%` : ''}
               outerRadius={120}
               fill="#8884d8"
               dataKey="value"
