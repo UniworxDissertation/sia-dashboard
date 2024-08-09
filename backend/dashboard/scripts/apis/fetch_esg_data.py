@@ -1,3 +1,5 @@
+import math
+
 import pandas as pd
 from django.http import JsonResponse
 from django.conf import settings
@@ -43,16 +45,23 @@ def calculate_correlation(esg_dict, stock_price_dict):
             esg_scores = []
             stock_changes = []
             for year in esg_dict[symbol]:
-                if year in stock_price_dict[symbol]:
+                year_int = int(year)
+                if year_int in stock_price_dict[symbol]:
                     esg_scores.append(esg_dict[symbol][year])
-                    stock_changes.append(stock_price_dict[symbol][year])
+                    stock_changes.append(stock_price_dict[symbol][year_int])
 
             if len(esg_scores) > 1 and len(stock_changes) > 1:
                 correlation, _ = pearsonr(esg_scores, stock_changes)
-                correlations[symbol] = correlation
+
+                # Check if the calculated correlation is NaN
+                if math.isnan(correlation):
+                    correlations[symbol] = 0  # Set the correlation to 0 if it is NaN
+                else:
+                    correlations[symbol] = correlation
             else:
                 correlations[symbol] = None
     return correlations
+
 
 
 def get_esg_data(request):
