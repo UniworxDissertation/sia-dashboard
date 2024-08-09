@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
+import {LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer} from 'recharts';
 import Menu from './Menu';
 import Header from './Header';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
+import ESGChart from "./ESGChart";
 
 const Dashboard = () => {
   const [data, setData] = useState([]);
@@ -74,7 +75,8 @@ const Dashboard = () => {
           dateFormat="MMM d, yyyy"
         />
       </div>
-      <h2>Stock Performance Graph</h2>
+      <h2>Stock Performance Graph of {selectedCompany}</h2>
+        <ResponsiveContainer width="100%" height={500}>
       <LineChart width={1000} height={500} data={filteredData}>
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis dataKey="date" tickFormatter={(date) => new Date(date).toLocaleDateString()} />
@@ -84,6 +86,8 @@ const Dashboard = () => {
         <Legend />
         <Line type="monotone" dataKey="close" stroke="#82ca9d" name="Close" />
       </LineChart>
+        </ResponsiveContainer>
+      <ESGChart selectedTicker={selectedCompany} />
     </div>
   );
 }

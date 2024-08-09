@@ -8,5 +8,6 @@ urlpatterns = [
     path('api/portfolio-insights/', portfolio_insights, name='portfolio-insights'),
     path('api/process-alphasentiment/', alpha_process_sentiment, name='alpha_vantage_sentiments'),
     path('api/alphasentiment-data/', alpha_sentiment_stock_view, name='alpha_sentiment_stock_view'),
-    path('api/refresh-sentiment-data/', get_alpha_vantage_data, name='get_alpha_vantage_data')
+    path('api/refresh-sentiment-data/', get_alpha_vantage_data, name='get_alpha_vantage_data'),
+    path('api/get-esg-data/', get_esg_data, name='get_esg_data')
 ]

@@ -7,6 +7,7 @@ from dashboard.scripts.apis import fetch_user_sentiment_alpha_vantage
 from dashboard.scripts.apis import fetch_portfolio_insights
 from dashboard.scripts.apis import fetch_alpha_sentiment_and_stock_data
 from dashboard.scripts.apis import alpha_sentiment_segregation
+from dashboard.scripts.apis import fetch_esg_data
 
 from dashboard.scripts.apis.fetch_sentiment_and_stock_data import fetch_aggregated_correlation
 
@@ -90,3 +91,8 @@ def get_alpha_vantage_data(request):
     tickers_list = [ticker.strip() for ticker in tickers.split(',')]
     data = fetch_user_sentiment_alpha_vantage.fetch_alpha_news_sentiment(tickers_list)
     return JsonResponse(data)
+
+
+def get_esg_data(request):
+    data = fetch_esg_data.get_esg_data(request)
+    return data
