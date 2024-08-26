@@ -7,6 +7,7 @@ import { FaInfoCircle } from 'react-icons/fa';
 import { MdClose } from 'react-icons/md';
 import Tooltip from 'react-tooltip-lite';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend } from 'recharts';
+import SentimentCorrelationChart from "./SentimentCorrelationChart";
 
 const NewsSentiment = () => {
   const [sentiments, setSentiments] = useState([]);
@@ -127,9 +128,10 @@ const NewsSentiment = () => {
           <button className="close-button" onClick={handleCloseClick}>
             <MdClose />
           </button>
+
           <div className="graph">
             <h3>Sentiment Score Variation for {selectedCompany}</h3>
-            <LineChart width={600} height={300} data={sentimentData}>
+            <LineChart width={500} height={300} data={sentimentData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="date" />
               <YAxis domain={['auto', 'auto']} />
@@ -138,9 +140,10 @@ const NewsSentiment = () => {
               <Line type="monotone" dataKey="Sentiment_Score" stroke="#8884d8" />
             </LineChart>
           </div>
+
           <div className="graph">
             <h3>Stock Price Variation for {selectedCompany}</h3>
-            <LineChart width={600} height={300} data={stockData}>
+            <LineChart width={500} height={300} data={stockData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="date" />
               <YAxis domain={['auto', 'auto']} /> {/* Adjust this range as needed */}
@@ -149,14 +152,19 @@ const NewsSentiment = () => {
               <Line type="monotone" dataKey="close" stroke="#82ca9d" />
             </LineChart>
           </div>
-          <div className="correlation">
+
+          <div className="graph">
             <h3>Correlation and Volatility Analysis</h3>
             <p><strong>Correlation between Sentiment Score and Stock Price:</strong> {correlation !== null ? correlation.toFixed(2) : 'N/A'}</p>
             <p><strong>Correlation Measure:</strong> {correlationMeasure}</p>
             <p><strong>Stock Price Volatility:</strong> {volatility !== null ? volatility.toFixed(4) : 'N/A'}</p>
           </div>
+
+          <div className="graph">
+            <SentimentCorrelationChart selectedTicker={selectedCompany}/>
+          </div>
         </div>
-      )}
+  )}
 
       {overallCorrelation !== null && (
       <div className="overall-correlation">

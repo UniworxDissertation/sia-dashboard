@@ -126,9 +126,11 @@ a {
 }
 
 .graphs-container {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 50px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* Two columns of equal width */
+  grid-template-rows: auto; /* Adjusts row height based on content */
+  gap: 20px; /* Adds space between the grid items */
+  margin: 20px 0; /* Adds margin around the container */
 }
 
 .graph {

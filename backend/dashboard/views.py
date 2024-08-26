@@ -11,6 +11,8 @@ from dashboard.scripts.apis import fetch_esg_data
 
 from dashboard.scripts.apis.fetch_sentiment_and_stock_data import fetch_aggregated_correlation
 
+from dashboard.scripts.apis.fetch_sentiment_and_stock_data import fetch_sentiment_and_stock_data_with_lag
+
 
 def stock_data(request):
     data = fetch_stock_data.read_csv()
@@ -95,4 +97,33 @@ def get_alpha_vantage_data(request):
 
 def get_esg_data(request):
     data = fetch_esg_data.get_esg_data(request)
+    return data
+
+
+def get_sentiment_correlation_with_lag(request, ticker):
+    try:
+        max_lag = int(request.GET.get('max_lag', 10))  # Default to 10 days
+        sentiment_data, stock_data, correlations_by_lag, optimal_lag, optimal_correlation, volatility = fetch_sentiment_and_stock_data_with_lag(
+            ticker, max_lag)
+
+        return JsonResponse({
+            'status': 'success',
+            'sentiment_data': sentiment_data,
+            'stock_data': stock_data,
+            'correlations_by_lag': correlations_by_lag,
+            'optimal_lag': optimal_lag,
+            'optimal_correlation': optimal_correlation,
+            'volatility': volatility
+        }, status=200)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+def get_lagged_esg_correlation(request):
+    data = fetch_esg_data.get_lagged_esg_correlation(request)
+    return data
+
+
+def sentiment_and_stock_data_with_lag_view(request):
+    data = fetch_alpha_sentiment_and_stock_data.sentiment_and_stock_data_with_lag_view(request)
     return data

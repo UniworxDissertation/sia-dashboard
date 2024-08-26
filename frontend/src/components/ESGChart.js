@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import axios from 'axios';
+import LaggedESGCorrelationChart from "./LaggedESGCorrelationChart";
 
 const ESGChart = ({ selectedTicker }) => {
   const [data, setData] = useState({ esg_data: {}, stock_data: {}, correlations: {} });
@@ -37,7 +38,7 @@ const ESGChart = ({ selectedTicker }) => {
 
   return (
     <div>
-      <h2>Performance Charts for {selectedTicker}</h2>
+      <h2>ESG and Stock Performance Charts for {selectedTicker}</h2>
       <div style={{ display: 'flex', justifyContent: 'space-around' }}>
         <ResponsiveContainer width="45%" height={300}>
           <LineChart data={esgChartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
@@ -62,6 +63,7 @@ const ESGChart = ({ selectedTicker }) => {
         </ResponsiveContainer>
       </div>
       <h3>Correlation between ESG Score and Stock Price: {data.correlations[selectedTicker]?.toFixed(2)}</h3>
+    <LaggedESGCorrelationChart />
     </div>
   );
 };

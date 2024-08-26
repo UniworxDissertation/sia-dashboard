@@ -85,3 +85,79 @@ def fetch_aggregated_correlation(tickers):
     overall_correlation = mean(correlations) if correlations else None
     return overall_correlation
 
+
+def fetch_sentiment_and_stock_data_with_lag(ticker, max_lag=10):
+    base_dir = os.path.join(settings.BASE_DIR, 'data_model', 'Sentiment JSONs')
+    sentiment_data = []
+    csv_data = fetch_stock_data.read_csv()
+    stock_data = []
+    files = [f for f in os.listdir(base_dir) if ticker in f]
+
+    for file_name in files:
+        json_file_path = os.path.join(base_dir, file_name)
+        if os.path.exists(json_file_path):
+            with open(json_file_path, 'r') as file:
+                data = json.load(file)
+                sentiment_data.extend(data.get('data', []))
+
+    sentiment_dates = {datetime.strptime(item['Time'], '%Y-%m-%dT%H:%M:%S.%fZ').date() for item in sentiment_data}
+
+    filtered_stock_data = csv_data[csv_data['date'].isin(sentiment_dates)]
+
+    for _, row in filtered_stock_data.iterrows():
+        if ticker in row['symbol']:
+            stock_data.append({
+                'date': row['date'].strftime('%Y-%m-%d'),
+                'close': row['close']
+            })
+
+    # Group sentiment scores by date
+    sentiment_by_date = defaultdict(list)
+    for item in sentiment_data:
+        date_str = datetime.strptime(item['Time'], '%Y-%m-%dT%H:%M:%S.%fZ').strftime('%Y-%m-%d')
+        sentiment_by_date[date_str].append(item['Sentiment_Score'])
+
+    # Calculate the mean sentiment score for each date
+    aggregated_sentiment_data = [{
+        'date': date,
+        'Sentiment_Score': mean(scores),
+        'Sentiment_Label': sentiment_segregation.calculate_sentiment_label(mean(scores))
+    } for date, scores in sentiment_by_date.items() if datetime.strptime(date, '%Y-%m-%d').date() in sentiment_dates]
+
+    # Sort aggregated sentiment data by date
+    aggregated_sentiment_data = sorted(aggregated_sentiment_data, key=lambda x: x['date'])
+
+    # Ensure both sentiment and stock data are aligned by date
+    sentiment_scores = []
+    stock_prices = []
+    dates = set([item['date'] for item in aggregated_sentiment_data]).intersection(
+        set([item['date'] for item in stock_data])
+    )
+
+    for date in dates:
+        sentiment_scores.append(
+            next(item['Sentiment_Score'] for item in aggregated_sentiment_data if item['date'] == date))
+        stock_prices.append(next(item['close'] for item in stock_data if item['date'] == date))
+
+    # Function to calculate correlation with lag
+    def calculate_lagged_correlation(lag):
+        lagged_sentiment_scores = sentiment_scores[:-lag] if lag > 0 else sentiment_scores
+        lagged_stock_prices = stock_prices[lag:] if lag > 0 else stock_prices
+        if len(lagged_sentiment_scores) > 1 and len(lagged_stock_prices) > 1:
+            correlation, _ = pearsonr(lagged_sentiment_scores, lagged_stock_prices)
+            return correlation
+        return None
+
+    # Calculate correlation for each lag (from 0 to max_lag days)
+    correlations_by_lag = {lag: correlation for lag in range(max_lag + 1)
+                           if (correlation := calculate_lagged_correlation(lag)) is not None}
+
+    # Find the optimal lag
+    optimal_lag = max(correlations_by_lag, key=correlations_by_lag.get)
+    optimal_correlation = correlations_by_lag[optimal_lag]
+
+    # Compute volatility
+    daily_returns = filtered_stock_data['close'].pct_change().dropna()
+    volatility = daily_returns.std() if not daily_returns.empty else None
+
+    return aggregated_sentiment_data, stock_data, correlations_by_lag, optimal_lag, optimal_correlation, volatility

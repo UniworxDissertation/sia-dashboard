@@ -8,7 +8,6 @@ from scipy.stats import pearsonr
 
 from dashboard.scripts.apis import fetch_stock_data
 
-
 # Mapping of ESG ratings to numerical values
 ESG_MAPPING = {
     "AAA": 7,
@@ -63,7 +62,6 @@ def calculate_correlation(esg_dict, stock_price_dict):
     return correlations
 
 
-
 def get_esg_data(request):
     esg_csv_file_path = os.path.join(settings.BASE_DIR, 'data_model', 'ESG_Data.csv')
 
@@ -74,5 +72,40 @@ def get_esg_data(request):
 
         return JsonResponse({'status': 'success', 'esg_data': esg_data, 'stock_data': stock_data,
                              'correlations': correlations}, status=200)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+def calculate_lagged_correlation(esg_dict, stock_price_dict, lag=1):
+    correlations = {}
+    for symbol in esg_dict:
+        if symbol in stock_price_dict:
+            esg_scores = []
+            stock_changes = []
+            years = sorted([int(year) for year in esg_dict[symbol].keys()])
+
+            for year in years:
+                if year + lag in stock_price_dict[symbol]:  # Shift the stock prices by the lag value
+                    esg_scores.append(esg_dict[symbol][str(year)])
+                    stock_changes.append(stock_price_dict[symbol][year + lag])
+
+            if len(esg_scores) > 1 and len(stock_changes) > 1:
+                correlation, _ = pearsonr(esg_scores, stock_changes)
+                correlations[symbol] = 0 if math.isnan(correlation) else correlation
+            else:
+                correlations[symbol] = None
+    return correlations
+
+
+def get_lagged_esg_correlation(request):
+    esg_csv_file_path = os.path.join(settings.BASE_DIR, 'data_model', 'ESG_Data.csv')
+    lag = int(request.GET.get('lag', 1))  # Default lag of 1 year if not provided
+
+    try:
+        esg_data = load_esg_data(esg_csv_file_path)
+        stock_data = load_stock_price_changes()
+        correlations = calculate_lagged_correlation(esg_data, stock_data, lag)
+
+        return JsonResponse({'status': 'success', 'correlations': correlations}, status=200)
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)

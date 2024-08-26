@@ -7,24 +7,7 @@ import { FaInfoCircle } from 'react-icons/fa';
 import { MdClose } from 'react-icons/md';
 import Tooltip from 'react-tooltip-lite';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend } from 'recharts';
-
-const determineCorrelationMeasure = (correlation) => {
-  if (correlation > 0.7) {
-    return 'a Strong Positive Correlation, meaning when market sentiment is positive, stock prices usually rise significantly.';
-  } else if (correlation > 0.4) {
-    return 'a Moderate Positive Correlation, meaning a positive market sentiment often leads to an increase in stock prices.';
-  } else if (correlation > 0.1) {
-    return 'a Weak Positive Correlation, meaning there is a slight tendency for stock prices to rise with positive market sentiment.';
-  } else if (correlation > -0.1) {
-    return 'No Correlation, meaning market sentiment and stock prices do not show a consistent pattern.';
-  } else if (correlation > -0.4) {
-    return 'a Weak Negative Correlation, meaning there is a slight tendency for stock prices to fall with positive market sentiment.';
-  } else if (correlation > -0.7) {
-    return 'a Moderate Negative Correlation, meaning a positive market sentiment often leads to a decrease in stock prices.';
-  } else {
-    return 'a Strong Negative Correlation, meaning when market sentiment is positive, stock prices usually fall significantly.';
-  }
-};
+import AlphaSentimentCorrelationChart from "./AlphaSentimentCorrelationChart";  // New component for correlation by lag
 
 const MarketSentiments = () => {
   const [sentiments, setSentiments] = useState([]);
@@ -34,8 +17,12 @@ const MarketSentiments = () => {
   const [correlation, setCorrelation] = useState(null);
   const [correlationMeasure, setCorrelationMeasure] = useState('');
   const [volatility, setVolatility] = useState(null);
-  const [showGraphs, setShowGraphs] = useState(false);
   const [overallCorrelation, setOverallCorrelation] = useState(null);
+  const [showGraphs, setShowGraphs] = useState(false);
+  const [correlationsByLag, setCorrelationsByLag] = useState({});  // Store correlation by lag
+  const [optimalLag, setOptimalLag] = useState(null);
+  const [optimalCorrelation, setOptimalCorrelation] = useState(null);
+  const [loading, setLoading] = useState(true);  // Add loading state
   const tickers = ["XOM", "CVX", "NEE", "BP", "SHEL", "JPM", "GS", "BAC", "MS", "WFC"]; // Example tickers
 
   useEffect(() => {
@@ -48,36 +35,63 @@ const MarketSentiments = () => {
     .then(response => {
       setSentiments(response.data.sentiments);
       setOverallCorrelation(response.data.overallCorrelation);
+      setLoading(false);  // Set loading to false when data is fetched
     })
     .catch(error => {
       console.error("There was an error fetching the sentiment data!", error);
+      setLoading(false);  // Set loading to false even if there is an error
     });
   }, []);
 
   const handleCardClick = (company) => {
     setSelectedCompany(company);
     setShowGraphs(true);
+    setLoading(true);  // Set loading to true when fetching company-specific data
 
     // Fetch sentiment data for the selected company
-    axios.get(`http://localhost:8000/api/alphasentiment-data/`, {
+    axios.get(`http://localhost:8000/api/alphasentiment-data-with-lag/`, {  // Updated endpoint
       params: {
-        ticker: company
+        ticker: company,
+        max_lag: 10  // Example: max lag of 10 days
       }
     })
     .then(response => {
       setSentimentData(response.data.sentimentData);
       setStockData(response.data.stockData);
-      setCorrelation(response.data.correlation);
+      setCorrelation(response.data.optimalCorrelation);  // Update with optimal correlation
       setVolatility(response.data.volatility);
-      setCorrelationMeasure(determineCorrelationMeasure(response.data.correlation));
+      setCorrelationsByLag(response.data.correlationsByLag);  // Store correlations by lag
+      setOptimalLag(response.data.optimalLag);  // Store optimal lag
+      setOptimalCorrelation(response.data.optimalCorrelation);  // Store optimal correlation
+      setCorrelationMeasure(determineCorrelationMeasure(response.data.optimalCorrelation));  // Use optimal correlation for measure
+      setLoading(false);  // Set loading to false when data is fetched
     })
     .catch(error => {
       console.error("There was an error fetching the data!", error);
+      setLoading(false);  // Set loading to false even if there is an error
     });
   };
 
   const handleCloseClick = () => {
     setShowGraphs(false);
+  };
+
+  const determineCorrelationMeasure = (correlation) => {
+    if (correlation > 0.7) {
+      return 'a Strong Positive Correlation, meaning when market sentiment is positive, stock prices usually rise significantly.';
+    } else if (correlation > 0.4) {
+      return 'a Moderate Positive Correlation, meaning a positive market sentiment often leads to an increase in stock prices.';
+    } else if (correlation > 0.1) {
+      return 'a Weak Positive Correlation, meaning there is a slight tendency for stock prices to rise with positive market sentiment.';
+    } else if (correlation > -0.1) {
+      return 'No Correlation, meaning market sentiment and stock prices do not show a consistent pattern.';
+    } else if (correlation > -0.4) {
+      return 'a Weak Negative Correlation, meaning there is a slight tendency for stock prices to fall with positive market sentiment.';
+    } else if (correlation > -0.7) {
+      return 'a Moderate Negative Correlation, meaning a positive market sentiment often leads to a decrease in stock prices.';
+    } else {
+      return 'a Strong Negative Correlation, meaning when market sentiment is positive, stock prices usually fall significantly.';
+    }
   };
 
   const CustomTooltip = ({ active, payload, label }) => {
@@ -93,36 +107,39 @@ const MarketSentiments = () => {
     return null;
   };
 
-  return (
-    <div className="market-sentiments">
-      <Header />
-      <h2>
-        Market Sentiments
-        <Tooltip content={
-          <div className={"tooltip_content"}>
-            <p><strong>Bearish:</strong> Expect a decline in stock price.</p>
-            <p><strong>Somewhat-Bearish:</strong> Expect a slight decline in stock price.</p>
-            <p><strong>Neutral:</strong> Expect little to no change in stock price.</p>
-            <p><strong>Somewhat-Bullish:</strong> Expect a slight increase in stock price.</p>
-            <p><strong>Bullish:</strong> Expect a significant increase in stock price.</p>
-            <a href="https://www.investopedia.com/terms/b/bullish.asp" target="_blank" rel="noopener noreferrer">Learn more</a>
-          </div>
-        }>
-          <FaInfoCircle style={{ marginLeft: '10px', cursor: 'pointer' }} />
-        </Tooltip>
-      </h2>
-      <div className="sentiment-cards">
-        {Object.keys(sentiments).map(ticker => (
-          <SentimentCard
-            key={ticker}
-            company={ticker}
-            sentiment={sentiments[ticker].sentiment}
-            onClick={handleCardClick}
-          />
-        ))}
-      </div>
+return (
+  <div className="market-sentiments">
+    <Header />
+    <h2>
+      Market Sentiments
+      <Tooltip content={
+        <div className={"tooltip_content"}>
+          <p><strong>Bearish:</strong> Expect a decline in stock price.</p>
+          <p><strong>Somewhat-Bearish:</strong> Expect a slight decline in stock price.</p>
+          <p><strong>Neutral:</strong> Expect little to no change in stock price.</p>
+          <p><strong>Somewhat-Bullish:</strong> Expect a slight increase in stock price.</p>
+          <p><strong>Bullish:</strong> Expect a significant increase in stock price.</p>
+          <a href="https://www.investopedia.com/terms/b/bullish.asp" target="_blank" rel="noopener noreferrer">Learn more</a>
+        </div>
+      }>
+        <FaInfoCircle style={{ marginLeft: '10px', cursor: 'pointer' }} />
+      </Tooltip>
+    </h2>
+    <div className="sentiment-cards">
+      {Object.keys(sentiments).map(ticker => (
+        <SentimentCard
+          key={ticker}
+          company={ticker}
+          sentiment={sentiments[ticker].sentiment}
+          onClick={handleCardClick}
+        />
+      ))}
+    </div>
 
-      {showGraphs && selectedCompany && (
+    {loading ? (
+      <div>Loading...</div>
+      ) : (
+      showGraphs && selectedCompany && (
         <div className="graphs-container">
           <button className="close-button" onClick={handleCloseClick}>
             <MdClose />
@@ -149,24 +166,29 @@ const MarketSentiments = () => {
               <Line type="monotone" dataKey="close" stroke="#82ca9d" />
             </LineChart>
           </div>
-          <div className="correlation">
+          <div className="graph">
             <h3>Correlation and Volatility Analysis</h3>
-            <p><strong>Correlation between Sentiment Score and Stock Price:</strong> {correlation !== null ? correlation.toFixed(2) : 'N/A'}</p>
+            <p><strong>Optimal Lag:</strong> {optimalLag} days</p>
+            <p><strong>Correlation between Sentiment Score and Stock Price:</strong> {optimalCorrelation !== null ? optimalCorrelation.toFixed(2) : 'N/A'}</p>
             <p><strong>Correlation Measure:</strong> {correlationMeasure}</p>
             <p><strong>Stock Price Volatility:</strong> {volatility !== null ? volatility.toFixed(4) : 'N/A'}</p>
           </div>
+          <div className="graph">
+            <AlphaSentimentCorrelationChart correlationsByLag={correlationsByLag} selectedTicker={selectedCompany} optimalLag={optimalLag} optimalCorrelation={optimalCorrelation} />
+          </div>
         </div>
-      )}
+      )
+    )}
 
-      <div className="overall-correlation">
-        <h3>Overall Correlation Analysis</h3>
-        <p><strong>Overall Correlation between Market Sentiment and Stock Price across all companies:</strong> {overallCorrelation !== null ? overallCorrelation.toFixed(2) : 'N/A'}</p>
-        <p>Statistically, it is found that market sentiment and stock variations have {determineCorrelationMeasure(overallCorrelation)}.</p>
-      </div>
-
-      <PortfolioInsights />
+    <div className="overall-correlation">
+      <h3>Overall Correlation Analysis</h3>
+      <p><strong>Overall Correlation between Market Sentiment and Stock Price across all companies:</strong> {overallCorrelation !== null ? overallCorrelation.toFixed(2) : 'N/A'}</p>
+      <p>Statistically, it is found that market sentiment and stock variations have {determineCorrelationMeasure(overallCorrelation)}.</p>
     </div>
-  );
+
+    <PortfolioInsights />
+  </div>
+);
 }
 
 export default MarketSentiments;
