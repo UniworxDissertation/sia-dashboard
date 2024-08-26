@@ -127,3 +127,8 @@ def get_lagged_esg_correlation(request):
 def sentiment_and_stock_data_with_lag_view(request):
     data = fetch_alpha_sentiment_and_stock_data.sentiment_and_stock_data_with_lag_view(request)
     return data
+
+
+def backtest_portfolio(request):
+    data = fetch_portfolio_insights.backtest_and_tune_monte_carlo_insights(request)
+    return data

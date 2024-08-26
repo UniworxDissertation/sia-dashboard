@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
-from datetime import datetime
-from sklearn.model_selection import train_test_split
+from datetime import datetime, timedelta
+from sklearn.model_selection import train_test_split, ParameterGrid
 from sklearn.ensemble import RandomForestRegressor
 from django.http import JsonResponse
 import os
@@ -36,7 +36,7 @@ def train_model(merged_data):
     y = merged_data['close'].shift(-1).fillna(method='ffill')
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    model = RandomForestRegressor(n_estimators=100, random_state=42)
+    model = RandomForestRegressor(n_estimators=50, min_samples_split=10, random_state=42)
     model.fit(X_train, y_train)
 
     merged_data['predicted_close'] = model.predict(X)
@@ -77,6 +77,50 @@ def estimate_portfolio_value(weights, stock_data, initial_investment=100, target
     for _ in range(num_simulations):
         daily_returns = np.random.multivariate_normal(mean_returns, cov_matrix, num_days)
         price_paths = np.exp(np.cumsum(daily_returns, axis=0))
+        if len(price_paths) > 0:
+            final_prices = price_paths[-1, :]
+            portfolio_growth = np.dot(final_prices, weights)
+            simulated_portfolio_values.append(portfolio_growth)
+        else:
+            return None
+
+    estimated_value = initial_investment * np.mean(simulated_portfolio_values)
+    return estimated_value
+
+
+def backtest_estimate_portfolio_value(weights, stock_data, initial_investment=100,
+                                      num_simulations=10000, num_days=252,
+                                      custom_returns=None):
+    """
+    This function mirrors the original `estimate_portfolio_value` but accepts
+    additional parameters for backtesting, such as custom returns, and allows
+    tuning of Monte Carlo simulation parameters without affecting the main function.
+
+    :param weights: Array of weights for different stocks in the portfolio.
+    :param stock_data: The stock data used for simulation.
+    :param initial_investment: Initial investment amount.
+    :param num_simulations: Number of Monte Carlo simulations to run.
+    :param num_days: Number of days for the simulation (e.g., 252 for a year).
+    :param custom_returns: Custom returns to use instead of calculating from stock data (useful for testing).
+    :return: Estimated portfolio value after simulation.
+    """
+    close_prices = stock_data.pivot(index='date', columns='symbol', values='close')
+
+    if custom_returns is None:
+        returns = close_prices.pct_change().dropna()
+    else:
+        returns = custom_returns
+
+    mean_returns = returns.mean()
+    cov_matrix = returns.cov()
+
+    simulated_portfolio_values = []
+
+    for _ in range(num_simulations):
+        # Generate random daily returns using multivariate normal distribution
+        daily_returns = np.random.multivariate_normal(mean_returns, cov_matrix, num_days)
+        price_paths = np.exp(np.cumsum(daily_returns, axis=0))
+
         if len(price_paths) > 0:
             final_prices = price_paths[-1, :]
             portfolio_growth = np.dot(final_prices, weights)
@@ -153,6 +197,111 @@ def portfolio_insights(request):
         "volatilities": volatility_dict,
         "performance": performance_dict,
         "investment_growth": investment_growth,
+    }
+
+    return JsonResponse(response_data)
+
+
+# Define the parameter grid for RandomForest and Monte Carlo simulation
+param_grid = {
+    'n_estimators': [50, 100, 200],
+    'max_depth': [None, 10, 20],
+    'min_samples_split': [2, 5, 10],
+    'num_simulations': [1000, 5000, 10000],
+    'num_days': [252, 500],
+    'risk_free_rate': [0.0, 0.01, 0.02],
+}
+
+
+def backtest_portfolio(start_date, end_date, weights, stock_data):
+    start_prices = stock_data[stock_data['date'] == start_date].set_index('symbol')['predicted_close']
+    end_prices = stock_data[stock_data['date'] == end_date].set_index('symbol')['predicted_close']
+
+    if start_prices.empty or end_prices.empty:
+        return None, None
+
+    growth = (end_prices / start_prices) * weights
+    total_growth = (growth.sum() - 1)
+
+    portfolio_value = 100 * (1 + total_growth)  # Assuming initial investment of 100
+    return portfolio_value, total_growth
+
+
+def backtest_and_tune_monte_carlo_insights(request):
+    data = fetch_stock_data.read_csv()
+    merged_data = merge_stock_and_indicators(data, financial_indicators)
+
+    # Determine the last date in the dataset
+    last_date = merged_data['date'].max()
+
+    # Set the start and end dates for the testing period (last 2 years)
+    backtest_end_date = last_date
+    backtest_start_date = backtest_end_date - timedelta(days=2 * 365)
+
+    np.random.seed(42)
+
+    # Set the training period (everything before the last 2 years)
+    train_data = merged_data[merged_data['date'] < backtest_start_date]
+    test_data = merged_data[(merged_data['date'] >= backtest_start_date) & (merged_data['date'] <= backtest_end_date)]
+
+    best_error = np.inf
+    best_params = None
+    best_portfolio_value = None
+    best_actual_value = None
+    best_growth_difference_percentage = None
+    best_actual_growth = None
+    best_predicted_growth = None
+
+    # Iterate through all combinations of hyperparameters
+    for params in ParameterGrid(param_grid):
+        # Train the RandomForestRegressor model with current parameters
+        model = RandomForestRegressor(n_estimators=params['n_estimators'],
+                                      max_depth=params['max_depth'],
+                                      min_samples_split=params['min_samples_split'],
+                                      random_state=42)
+        model.fit(train_data[['close', 'volume', 'EPS', 'PE', 'ROE', 'ROA', 'ROI']],
+                  train_data['close'].shift(-1).fillna(method='ffill'))
+
+        # Generate predictions on the test data
+        test_data['predicted_close'] = model.predict(
+            test_data[['close', 'volume', 'EPS', 'PE', 'ROE', 'ROA', 'ROI']])
+
+        # Simulate portfolio performance on the test data using Monte Carlo simulation
+        optimal_weights = np.random.random(len(test_data['symbol'].unique()))  # Using random weights for example
+        optimal_weights /= np.sum(optimal_weights)  # Normalize weights
+
+        portfolio_value = backtest_estimate_portfolio_value(optimal_weights, test_data,
+                                                            num_simulations=params['num_simulations'],
+                                                            num_days=params['num_days'])
+
+        # Calculate actual performance
+        actual_growth = (test_data[test_data['date'] == backtest_end_date]['close'].mean() /
+                         test_data[test_data['date'] == backtest_start_date]['close'].mean()) - 1
+        actual_portfolio_value = 100 * (1 + actual_growth)
+
+        # Calculate the difference between predicted and actual growth in percentage
+        predicted_growth = portfolio_value / 100 - 1  # Calculate predicted growth from portfolio value
+        growth_difference_percentage = ((
+                                                predicted_growth - actual_growth) / actual_growth) * 100 \
+            if actual_growth != 0 else None
+
+        # Track the best parameters based on the lowest error
+        if growth_difference_percentage is not None and abs(growth_difference_percentage) < best_error:
+            best_error = abs(growth_difference_percentage)
+            best_params = params
+            best_portfolio_value = portfolio_value
+            best_actual_value = actual_portfolio_value
+            best_growth_difference_percentage = growth_difference_percentage
+            best_actual_growth = actual_growth
+            best_predicted_growth = predicted_growth
+
+    response_data = {
+        "predicted_portfolio_value": best_portfolio_value,
+        "predicted_growth": best_predicted_growth,
+        "actual_growth": best_actual_growth,
+        "growth_difference_percentage": best_growth_difference_percentage,
+        "actual_portfolio_value": best_actual_value,
+        "best_parameters": best_params
     }
 
     return JsonResponse(response_data)
