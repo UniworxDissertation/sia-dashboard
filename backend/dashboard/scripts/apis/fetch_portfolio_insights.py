@@ -48,7 +48,7 @@ def calculate_investment_growth(start_date, end_date, weights, stock_data, initi
     end_prices = stock_data[stock_data['date'] == end_date].set_index('symbol')['predicted_close']
 
     if start_prices.empty or end_prices.empty:
-        return estimate_portfolio_value(weights, stock_data, initial_investment, end_date)
+        return estimate_portfolio_value(weights, stock_data, start_date, initial_investment,  end_date)
 
     growth = (end_prices / start_prices) * weights
     total_growth = (growth.sum() - 1)
@@ -57,7 +57,7 @@ def calculate_investment_growth(start_date, end_date, weights, stock_data, initi
     return portfolio_value
 
 
-def estimate_portfolio_value(weights, stock_data, initial_investment=100, target_date=None):
+def estimate_portfolio_value(weights, stock_data, start_date, initial_investment=100, target_date=None):
     close_prices = stock_data.pivot(index='date', columns='symbol', values='close')
     returns = close_prices.pct_change().dropna()
     mean_returns = returns.mean()
@@ -66,9 +66,8 @@ def estimate_portfolio_value(weights, stock_data, initial_investment=100, target
     num_simulations = 10000
 
     if target_date:
-        current_date = datetime.now().date()
         target_date = datetime.strptime(target_date, '%Y-%m-%d').date()
-        num_days = np.busday_count(current_date, target_date)
+        num_days = np.busday_count(start_date, target_date)
     else:
         num_days = 252
 

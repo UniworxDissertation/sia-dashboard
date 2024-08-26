@@ -11,8 +11,10 @@ const PortfolioInsights = () => {
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
   const [investmentGrowth, setInvestmentGrowth] = useState(null);
+  const [loading, setLoading] = useState(false);  // Add loading state
 
   const fetchPortfolioData = (profile, start, end) => {
+    setLoading(true);  // Set loading to true when starting the API call
     axios.get('http://localhost:8000/api/portfolio-insights/', {
       params: { risk_profile: profile, start_date: start, end_date: end }
     })
@@ -35,9 +37,11 @@ const PortfolioInsights = () => {
       setData(formattedData);
       setZeroAllocation(zeroAllocationData);
       setInvestmentGrowth(response.data.investment_growth);
+      setLoading(false);  // Set loading to false when data is loaded
     })
     .catch(error => {
       console.error('Error fetching portfolio insights:', error);
+      setLoading(false);  // Set loading to false even if there's an error
     });
   };
 
@@ -105,24 +109,28 @@ const PortfolioInsights = () => {
       </div>
       <div className="insights-container">
         <div className="chart-container">
-          <PieChart width={600} height={350}>
-            <Pie
-              data={data}
-              cx={300}
-              cy={150}
-              labelLine={false}
-              label={({ name, percent }) => (percent * 100).toFixed(0) > 0 ? `${name}: ${(percent * 100).toFixed(0)}%` : ''}
-              outerRadius={120}
-              fill="#8884d8"
-              dataKey="value"
-            >
-              {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-              ))}
-            </Pie>
-            <Tooltip content={<CustomTooltip />} />
-            <Legend layout="horizontal" verticalAlign="bottom" align="center" />
-          </PieChart>
+          {loading ? (  // Show loading indicator while data is being fetched
+            <div>Loading chart...</div>
+          ) : (
+            <PieChart width={600} height={350}>
+              <Pie
+                data={data}
+                cx={300}
+                cy={150}
+                labelLine={false}
+                label={({ name, percent }) => (percent * 100).toFixed(0) > 0 ? `${name}: ${(percent * 100).toFixed(0)}%` : ''}
+                outerRadius={120}
+                fill="#8884d8"
+                dataKey="value"
+              >
+                {data.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip content={<CustomTooltip />} />
+              <Legend layout="horizontal" verticalAlign="bottom" align="center" />
+            </PieChart>
+          )}
 
           {zeroAllocation.length > 0 && (
             <div className="zero-allocation">
@@ -136,12 +144,16 @@ const PortfolioInsights = () => {
           )}
         </div>
 
-        {investmentGrowth !== null && (
-          <div className="investment-growth">
-            <h3>Investment Growth</h3>
-            <p>If you had invested $100 on {startDate.toISOString().split('T')[0]},
-              it would be worth ${investmentGrowth.toFixed(2)} on {endDate.toISOString().split('T')[0]}.</p>
-          </div>
+        {loading ? (  // Show loading indicator for investment growth while data is being fetched
+          <div>Loading investment growth...</div>
+        ) : (
+          investmentGrowth !== null && (
+            <div className="investment-growth">
+              <h3>Investment Growth</h3>
+              <p>If you had invested $100 on {startDate.toISOString().split('T')[0]},
+                it would be worth ${investmentGrowth.toFixed(2)} on {endDate.toISOString().split('T')[0]}.</p>
+            </div>
+          )
         )}
       </div>
     </div>
