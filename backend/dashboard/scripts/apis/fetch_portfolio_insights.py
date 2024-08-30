@@ -36,7 +36,7 @@ def train_model(merged_data):
     y = merged_data['close'].shift(-1).fillna(method='ffill')
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    model = RandomForestRegressor(n_estimators=50, min_samples_split=10, random_state=42)
+    model = RandomForestRegressor(n_estimators=50, min_samples_split=2, random_state=42)
     model.fit(X_train, y_train)
 
     merged_data['predicted_close'] = model.predict(X)
@@ -48,7 +48,7 @@ def calculate_investment_growth(start_date, end_date, weights, stock_data, initi
     end_prices = stock_data[stock_data['date'] == end_date].set_index('symbol')['predicted_close']
 
     if start_prices.empty or end_prices.empty:
-        return estimate_portfolio_value(weights, stock_data, start_date, initial_investment,  end_date)
+        return estimate_portfolio_value(weights, stock_data, start_date, initial_investment, end_date)
 
     growth = (end_prices / start_prices) * weights
     total_growth = (growth.sum() - 1)
@@ -63,7 +63,7 @@ def estimate_portfolio_value(weights, stock_data, start_date, initial_investment
     mean_returns = returns.mean()
     cov_matrix = returns.cov()
 
-    num_simulations = 10000
+    num_simulations = 1000
 
     if target_date:
         target_date = datetime.strptime(target_date, '%Y-%m-%d').date()
@@ -143,7 +143,7 @@ def portfolio_insights(request):
     cov_matrix = returns.cov()
 
     num_assets = len(mean_returns)
-    num_portfolios = 10000
+    num_portfolios = 20000
 
     risk_profile = request.GET.get('risk_profile', 'moderate').lower()
     start_date = request.GET.get('start_date')
@@ -203,13 +203,62 @@ def portfolio_insights(request):
 
 # Define the parameter grid for RandomForest and Monte Carlo simulation
 param_grid = {
-    'n_estimators': [50, 100, 200],
+    'n_estimators': [50, 100, 200],  # Model hyperparameters
     'max_depth': [None, 10, 20],
     'min_samples_split': [2, 5, 10],
-    'num_simulations': [1000, 5000, 10000],
-    'num_days': [252, 500],
-    'risk_free_rate': [0.0, 0.01, 0.02],
+    'num_portfolios': [5000, 10000, 20000],  # Monte Carlo for portfolio allocation
+    'num_simulations': [1000, 5000, 10000],  # Monte Carlo for portfolio value estimation
 }
+risk_free_rates = [0.0, 0.01, 0.02]
+
+
+def backtest_portfolio_insights(request, num_portfolios, risk_free_rate):
+    data = fetch_stock_data.read_csv()
+    merged_data = merge_stock_and_indicators(data, financial_indicators)
+    model = train_model(merged_data)
+
+    close_prices = merged_data.pivot(index='date', columns='symbol', values='close')
+    returns = close_prices.pct_change().dropna()
+
+    mean_returns = returns.mean()
+    cov_matrix = returns.cov()
+
+    num_assets = len(mean_returns)
+
+    np.random.seed(42)
+
+    results = np.zeros((3, num_portfolios))
+    weights_record = []
+
+    for i in range(num_portfolios):
+        weights = np.random.random(num_assets)
+        weights /= np.sum(weights)
+
+        weights_record.append(weights)
+
+        portfolio_return = np.sum(weights * mean_returns)
+        portfolio_volatility = np.sqrt(np.dot(weights.T, np.dot(cov_matrix, weights)))
+
+        results[0, i] = portfolio_return
+        results[1, i] = portfolio_volatility
+        results[2, i] = (portfolio_return - risk_free_rate) / portfolio_volatility
+
+    max_sharpe_idx = np.argmax(results[2])
+    optimal_weights = weights_record[max_sharpe_idx]
+
+    p_returns, p_volatility = results[0, max_sharpe_idx], results[1, max_sharpe_idx]
+    sharpe_ratio = results[2, max_sharpe_idx]
+
+    weights_dict = dict(zip(close_prices.columns, optimal_weights))
+    volatility_dict = dict(zip(close_prices.columns, returns.std()))
+    performance_dict = {
+        "expected_annual_return": p_returns,
+        "annual_volatility": p_volatility,
+        "sharpe_ratio": sharpe_ratio,
+        "weights": optimal_weights
+    }
+
+    return performance_dict
 
 
 def backtest_portfolio(start_date, end_date, weights, stock_data):
@@ -243,64 +292,62 @@ def backtest_and_tune_monte_carlo_insights(request):
     train_data = merged_data[merged_data['date'] < backtest_start_date]
     test_data = merged_data[(merged_data['date'] >= backtest_start_date) & (merged_data['date'] <= backtest_end_date)]
 
-    best_error = np.inf
-    best_params = None
-    best_portfolio_value = None
-    best_actual_value = None
-    best_growth_difference_percentage = None
-    best_actual_growth = None
-    best_predicted_growth = None
+    # Dictionary to store results for each risk-free rate
+    results_by_risk_rate = {}
 
     # Iterate through all combinations of hyperparameters
     for params in ParameterGrid(param_grid):
-        # Train the RandomForestRegressor model with current parameters
-        model = RandomForestRegressor(n_estimators=params['n_estimators'],
-                                      max_depth=params['max_depth'],
-                                      min_samples_split=params['min_samples_split'],
-                                      random_state=42)
-        model.fit(train_data[['close', 'volume', 'EPS', 'PE', 'ROE', 'ROA', 'ROI']],
-                  train_data['close'].shift(-1).fillna(method='ffill'))
+        for risk_free_rate in risk_free_rates:
+            num_portfolios = params['num_portfolios']
 
-        # Generate predictions on the test data
-        test_data['predicted_close'] = model.predict(
-            test_data[['close', 'volume', 'EPS', 'PE', 'ROE', 'ROA', 'ROI']])
+            # Train the RandomForestRegressor model with current parameters
+            model = RandomForestRegressor(n_estimators=params['n_estimators'],
+                                          max_depth=params['max_depth'],
+                                          min_samples_split=params['min_samples_split'],
+                                          random_state=42)
+            model.fit(train_data[['close', 'volume', 'EPS', 'PE', 'ROE', 'ROA', 'ROI']],
+                      train_data['close'].shift(-1).fillna(method='ffill'))
 
-        # Simulate portfolio performance on the test data using Monte Carlo simulation
-        optimal_weights = np.random.random(len(test_data['symbol'].unique()))  # Using random weights for example
-        optimal_weights /= np.sum(optimal_weights)  # Normalize weights
+            # Generate predictions on the test data
+            test_data['predicted_close'] = model.predict(
+                test_data[['close', 'volume', 'EPS', 'PE', 'ROE', 'ROA', 'ROI']])
 
-        portfolio_value = backtest_estimate_portfolio_value(optimal_weights, test_data,
-                                                            num_simulations=params['num_simulations'],
-                                                            num_days=params['num_days'])
+            performance_dict = backtest_portfolio_insights(request, num_portfolios=num_portfolios,
+                                                           risk_free_rate=risk_free_rate)
 
-        # Calculate actual performance
-        actual_growth = (test_data[test_data['date'] == backtest_end_date]['close'].mean() /
-                         test_data[test_data['date'] == backtest_start_date]['close'].mean()) - 1
-        actual_portfolio_value = 100 * (1 + actual_growth)
+            optimal_weights = performance_dict['weights']
+            optimal_weights /= np.sum(optimal_weights)
 
-        # Calculate the difference between predicted and actual growth in percentage
-        predicted_growth = portfolio_value / 100 - 1  # Calculate predicted growth from portfolio value
-        growth_difference_percentage = ((
-                                                predicted_growth - actual_growth) / actual_growth) * 100 \
-            if actual_growth != 0 else None
+            # Pass the params for num_simulations and num_days
+            portfolio_value = backtest_estimate_portfolio_value(optimal_weights, test_data,
+                                                                num_simulations=params['num_simulations'])
 
-        # Track the best parameters based on the lowest error
-        if growth_difference_percentage is not None and abs(growth_difference_percentage) < best_error:
-            best_error = abs(growth_difference_percentage)
-            best_params = params
-            best_portfolio_value = portfolio_value
-            best_actual_value = actual_portfolio_value
-            best_growth_difference_percentage = growth_difference_percentage
-            best_actual_growth = actual_growth
-            best_predicted_growth = predicted_growth
+            actual_growth = (test_data[test_data['date'] == backtest_end_date]['close'].mean() /
+                             test_data[test_data['date'] == backtest_start_date]['close'].mean()) - 1
+            actual_portfolio_value = 100 * (1 + actual_growth)
 
-    response_data = {
-        "predicted_portfolio_value": best_portfolio_value,
-        "predicted_growth": best_predicted_growth,
-        "actual_growth": best_actual_growth,
-        "growth_difference_percentage": best_growth_difference_percentage,
-        "actual_portfolio_value": best_actual_value,
-        "best_parameters": best_params
-    }
+            # Calculate the difference between predicted and actual growth in percentage
+            predicted_growth = portfolio_value / 100 - 1  # Calculate predicted growth from portfolio value
+            growth_difference_percentage = ((
+                                                    predicted_growth - actual_growth) / actual_growth) * 100 \
+                if actual_growth != 0 else None
 
-    return JsonResponse(response_data)
+            # Store the best parameters and results for the current risk-free rate
+            if growth_difference_percentage is not None:
+                if risk_free_rate not in results_by_risk_rate or (
+                        results_by_risk_rate[risk_free_rate]['growth_difference_percentage'] is None or
+                        abs(growth_difference_percentage) <
+                        abs(results_by_risk_rate[risk_free_rate]['growth_difference_percentage'])):
+                    results_by_risk_rate[risk_free_rate] = {
+                        "predicted_portfolio_value": portfolio_value,
+                        "predicted_growth": predicted_growth,
+                        "actual_growth": actual_growth,
+                        "growth_difference_percentage": growth_difference_percentage,
+                        "actual_portfolio_value": actual_portfolio_value,
+                        "best_parameters": params,
+                        "sharpe_ratio": performance_dict["sharpe_ratio"],
+                        "expected_annual_return": performance_dict["expected_annual_return"],
+                        "annual_volatility": performance_dict["annual_volatility"],
+                    }
+
+    return JsonResponse(results_by_risk_rate)
