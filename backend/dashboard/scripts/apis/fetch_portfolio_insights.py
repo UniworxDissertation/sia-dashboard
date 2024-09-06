@@ -5,6 +5,7 @@ from sklearn.model_selection import train_test_split, ParameterGrid
 from sklearn.ensemble import RandomForestRegressor
 from django.http import JsonResponse
 import os
+from arch import arch_model
 
 from dashboard.scripts.apis import fetch_stock_data
 
@@ -31,7 +32,7 @@ def merge_stock_and_indicators(stock_data, indicators):
 
 
 def train_model(merged_data):
-    features = ['close', 'volume', 'EPS', 'PE', 'ROE', 'ROA', 'ROI']
+    features = ['volume', 'EPS', 'PE', 'ROE', 'ROA', 'ROI']
     X = merged_data[features]
     y = merged_data['close'].shift(-1).fillna(method='ffill')
 
@@ -43,17 +44,96 @@ def train_model(merged_data):
     return model
 
 
+def forecast_volatility_garch(symbol_data, num_days):
+    """
+    Forecasts volatility for a stock symbol using the GARCH model.
+
+    :param symbol_data: Historical stock data for the symbol
+    :param num_days: Number of days to forecast
+    :return: Forecasted volatility as a pandas Series
+    """
+    model = arch_model(symbol_data, vol='Garch', p=1, q=1)
+    model_fit = model.fit(disp="off")
+
+    forecast = model_fit.forecast(horizon=num_days)
+    forecast_volatility = np.sqrt(forecast.variance.iloc[-1])
+
+    return forecast_volatility
+
+def forecast_close_prices_with_garch(stock_data, target_date, num_days):
+    """
+    Forecasts the close prices for future dates using GARCH for volatility and returns for price.
+
+    :param stock_data: Historical stock data
+    :param target_date: Date for which to predict the close prices
+    :param num_days: Number of days to forecast
+    :return: Forecasted close prices as a pandas Series
+    """
+    forecasted_close_prices = {}
+    symbols = stock_data['symbol'].unique()
+    last_date = stock_data['date'].max()
+
+    # Calculate the number of days to forecast based on target_date
+    forecast_days = (pd.to_datetime(target_date) - pd.to_datetime(last_date)).days
+    if forecast_days <= 0:
+        raise ValueError("Target date must be after the last available date in the stock data")
+
+    for symbol in symbols:
+        symbol_data = stock_data[stock_data['symbol'] == symbol].set_index('date')['close'].dropna()
+
+        # Calculate returns
+        returns = symbol_data.pct_change().dropna()
+
+        # Forecast volatility using GARCH
+        forecasted_volatility = forecast_volatility_garch(returns, forecast_days)
+
+        # Forecast future returns as the average historical return
+        avg_return = returns.mean()
+
+        # Predict the close price for the target date
+        last_close = symbol_data.iloc[-1]
+        predicted_return = avg_return * forecast_days  # Aggregate return over the forecast period
+        predicted_volatility = forecasted_volatility[-1]
+
+        # Assuming returns follow a normal distribution, we can model the future price
+        predicted_close = last_close * np.exp(predicted_return + 0.5 * predicted_volatility ** 2)
+        forecasted_close_prices[symbol] = predicted_close
+
+    return pd.Series(forecasted_close_prices)
+
+
 def calculate_investment_growth(start_date, end_date, weights, stock_data, initial_investment=100):
-    start_prices = stock_data[stock_data['date'] == start_date].set_index('symbol')['predicted_close']
-    end_prices = stock_data[stock_data['date'] == end_date].set_index('symbol')['predicted_close']
+    # Ensure dates are within available data range
+    available_dates = stock_data['date'].unique()
+    if pd.to_datetime(end_date) > available_dates.max():
+        num_days_to_forecast = (pd.to_datetime(end_date) - available_dates.max()).days
+        forecasted_end_prices = forecast_close_prices_with_garch(stock_data, end_date, num_days_to_forecast)
+
+        stock_data = stock_data.append(pd.DataFrame({
+            'date': [end_date] * len(forecasted_end_prices),
+            'symbol': forecasted_end_prices.index,
+            'close': forecasted_end_prices.values
+        }))
+
+    # Try to get actual start prices; fallback to predicted_close if not available
+    start_prices = stock_data[stock_data['date'] == start_date].set_index('symbol')['close']
+    if start_prices.isnull().all():
+        start_prices = stock_data[stock_data['date'] == start_date].set_index('symbol')['predicted_close']
+
+    # Try to get actual end prices; fallback to predicted_close if not available
+    end_prices = stock_data[stock_data['date'] == end_date].set_index('symbol')['close']
+    if end_prices.isnull().all():
+        end_prices = stock_data[stock_data['date'] == end_date].set_index('symbol')['predicted_close']
 
     if start_prices.empty or end_prices.empty:
         return estimate_portfolio_value(weights, stock_data, start_date, initial_investment, end_date)
 
-    growth = (end_prices / start_prices) * weights
-    total_growth = (growth.sum() - 1)
+    # Calculate the number of shares for each stock based on the initial investment and the start prices
+    num_shares = (weights * initial_investment) / start_prices
 
-    portfolio_value = initial_investment * (1 + total_growth)
+    # Calculate the final portfolio value based on the number of shares and the end prices
+    portfolio_value = np.sum(num_shares * end_prices)
+
     return portfolio_value
 
 
