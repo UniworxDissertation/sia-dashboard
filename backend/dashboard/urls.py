@@ -14,5 +14,6 @@ urlpatterns = [
          name='get_sentiment_correlation_with_lag'),
     path('api/get-lagged-esg-correlation/', get_lagged_esg_correlation, name='get_lagged_esg_correlation'),
     path('api/alphasentiment-data-with-lag/', sentiment_and_stock_data_with_lag_view, name='sentiment_and_stock_data_with_lag_view'),
-    path('api/backtest-portfolio/', backtest_portfolio, name='backtest_portfolio')
+    path('api/backtest-portfolio/', backtest_portfolio, name='backtest_portfolio'),
+    path('api/backtest-only', backtest_only, name='backtest_only')
 ]

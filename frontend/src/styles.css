@@ -86,6 +86,9 @@ h1, h2, h3, p, span, label {
   margin-bottom: 20px;
 }
 
+.lag {
+  margin-bottom: 20px;
+}
 .market-sentiments {
   padding: 20px;
 }

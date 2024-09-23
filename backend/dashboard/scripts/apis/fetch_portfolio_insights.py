@@ -37,7 +37,7 @@ def train_model(merged_data):
     y = merged_data['close'].shift(-1).fillna(method='ffill')
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    model = RandomForestRegressor(n_estimators=50, min_samples_split=2, random_state=42)
+    model = RandomForestRegressor(n_estimators=100, min_samples_split=2, max_depth=10, random_state=42)
     model.fit(X_train, y_train)
 
     merged_data['predicted_close'] = model.predict(X)
@@ -59,6 +59,7 @@ def forecast_volatility_garch(symbol_data, num_days):
     forecast_volatility = np.sqrt(forecast.variance.iloc[-1])
 
     return forecast_volatility
+
 
 def forecast_close_prices_with_garch(stock_data, target_date, num_days):
     """
@@ -229,11 +230,11 @@ def portfolio_insights(request):
     start_date = request.GET.get('start_date')
     end_date = request.GET.get('end_date')
 
-    risk_free_rate = 0.01
+    risk_free_rate = 0.015
     if risk_profile == 'low':
-        risk_free_rate = 0.0
+        risk_free_rate = 0.005
     elif risk_profile == 'high':
-        risk_free_rate = 0.02
+        risk_free_rate = 0.03
 
     np.random.seed(42)
 
@@ -304,8 +305,6 @@ def backtest_portfolio_insights(request, num_portfolios, risk_free_rate):
     cov_matrix = returns.cov()
 
     num_assets = len(mean_returns)
-
-    np.random.seed(42)
 
     results = np.zeros((3, num_portfolios))
     weights_record = []

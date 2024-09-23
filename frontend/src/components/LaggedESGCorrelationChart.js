@@ -36,10 +36,10 @@ const LaggedESGCorrelationChart = () => {
   }
 
   return (
-    <div>
+    <div className={"company-select"}>
       <h2>Lagged ESG Correlation Analysis</h2>
       <label htmlFor="lag">Select Lag (years): </label>
-      <select id="lag" value={lag} onChange={handleLagChange}>
+      <select className={"lag"} id="company" value={lag} onChange={handleLagChange}>
         {[...Array(5).keys()].map(i => (
           <option key={i + 1} value={i + 1}>
             {i + 1} Year(s)

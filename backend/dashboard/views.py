@@ -13,6 +13,8 @@ from dashboard.scripts.apis.fetch_sentiment_and_stock_data import fetch_aggregat
 
 from dashboard.scripts.apis.fetch_sentiment_and_stock_data import fetch_sentiment_and_stock_data_with_lag
 
+from dashboard.scripts.apis import backtest_script
+
 
 def stock_data(request):
     data = fetch_stock_data.read_csv()
@@ -131,4 +133,9 @@ def sentiment_and_stock_data_with_lag_view(request):
 
 def backtest_portfolio(request):
     data = fetch_portfolio_insights.backtest_and_tune_monte_carlo_insights(request)
+    return data
+
+
+def backtest_only(request):
+    data = backtest_script.backtest_only_endpoint(request)
     return data
