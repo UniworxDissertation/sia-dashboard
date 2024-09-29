@@ -213,6 +213,7 @@ def backtest_estimate_portfolio_value(weights, stock_data, initial_investment=10
 
 
 def portfolio_insights(request):
+    np.random.seed(42)
     data = fetch_stock_data.read_csv()
     merged_data = merge_stock_and_indicators(data, financial_indicators)
     model = train_model(merged_data)
@@ -230,13 +231,13 @@ def portfolio_insights(request):
     start_date = request.GET.get('start_date')
     end_date = request.GET.get('end_date')
 
-    risk_free_rate = 0.015
+    if risk_profile == 'moderate':
+        risk_free_rate = 0.015
     if risk_profile == 'low':
         risk_free_rate = 0.005
     elif risk_profile == 'high':
         risk_free_rate = 0.03
 
-    np.random.seed(42)
 
     results = np.zeros((3, num_portfolios))
     weights_record = []
@@ -290,7 +291,7 @@ param_grid = {
     'num_portfolios': [5000, 10000, 20000],  # Monte Carlo for portfolio allocation
     'num_simulations': [1000, 5000, 10000],  # Monte Carlo for portfolio value estimation
 }
-risk_free_rates = [0.0, 0.01, 0.02]
+risk_free_rates = [0.005, 0.015, 0.03]
 
 
 def backtest_portfolio_insights(request, num_portfolios, risk_free_rate):

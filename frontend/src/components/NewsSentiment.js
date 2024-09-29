@@ -63,23 +63,24 @@ const NewsSentiment = () => {
     setShowGraphs(false);
   };
 
- const determineCorrelationMeasure = (correlation) => {
+const determineCorrelationMeasure = (correlation) => {
   if (correlation > 0.7) {
-    return 'a Strong Positive Correlation, meaning when market sentiment is positive, stock prices usually rise significantly.';
+    return 'a Strong Positive Correlation, meaning when sentiment is Bullish, stock prices usually rise significantly.';
   } else if (correlation > 0.4) {
-    return 'a Moderate Positive Correlation, meaning a positive market sentiment often leads to an increase in stock prices.';
+    return 'a Moderate Positive Correlation, meaning positive sentiment, such as Somewhat-Bullish, often leads to an increase in stock prices.';
   } else if (correlation > 0.1) {
-    return 'a Weak Positive Correlation, meaning there is a slight tendency for stock prices to rise with positive market sentiment.';
+    return 'a Weak Positive Correlation, meaning there is a slight tendency for stock prices to rise with positive sentiment, even if it is Neutral or Somewhat-Bullish.';
   } else if (correlation > -0.1) {
-    return 'No Correlation, meaning market sentiment and stock prices do not show a consistent pattern.';
+    return 'No Correlation, meaning sentiment (Neutral or otherwise) and stock prices do not show a consistent pattern.';
   } else if (correlation > -0.4) {
-    return 'a Weak Negative Correlation, meaning there is a slight tendency for stock prices to fall with positive market sentiment.';
+    return 'a Weak Negative Correlation, meaning there is a slight tendency for stock prices to fall with negative sentiment, like Somewhat-Bearish.';
   } else if (correlation > -0.7) {
-    return 'a Moderate Negative Correlation, meaning a positive market sentiment often leads to a decrease in stock prices.';
+    return 'a Moderate Negative Correlation, meaning negative sentiment, like Somewhat-Bearish, often leads to a decrease in stock prices.';
   } else {
-    return 'a Strong Negative Correlation, meaning when market sentiment is positive, stock prices usually fall significantly.';
+    return 'a Strong Negative Correlation, meaning when sentiment is Bearish, stock prices usually fall significantly.';
   }
 };
+
 
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {

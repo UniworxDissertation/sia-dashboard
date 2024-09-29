@@ -71,11 +71,15 @@ def backtest_portfolio_insights(merged_data, num_portfolios, risk_free_rate, sta
     max_sharpe_idx = np.argmax(results[2])
     optimal_weights = weights_record[max_sharpe_idx]
 
-    # Calculating portfolio growth
-    actual_growth = (merged_data[merged_data['date'] == end_date]['close'].mean() /
-                     merged_data[merged_data['date'] == start_date]['close'].mean()) - 1
+    # Calculate actual growth using the portfolio weights
+    start_prices = merged_data[merged_data['date'] == start_date].pivot(index='date', columns='symbol', values='close').values.flatten()
+    end_prices = merged_data[merged_data['date'] == end_date].pivot(index='date', columns='symbol', values='close').values.flatten()
+
+    # Calculate the weighted growth
+    actual_growth = np.dot(optimal_weights, (end_prices - start_prices) / start_prices)
 
     return optimal_weights, actual_growth
+
 
 
 def calculate_growth_difference(merged_data, optimal_weights, actual_growth, backtest_start_date, initial_investment=100):
@@ -90,12 +94,12 @@ def calculate_growth_difference(merged_data, optimal_weights, actual_growth, bac
 def backtest_only_endpoint(request):
     data = fetch_stock_data.read_csv()
     merged_data = merge_stock_and_indicators(data, financial_indicators)
-
+    np.random.seed(42)
     last_date = merged_data['date'].max()
     backtest_end_date = last_date
     backtest_start_date = backtest_end_date - timedelta(days=365 * 2)
 
-    risk_free_rates = [0.0, 0.01, 0.02]
+    risk_free_rates = [0.005, 0.015, 0.03]
     num_portfolios = 5000
 
     results_by_risk_rate = {}
