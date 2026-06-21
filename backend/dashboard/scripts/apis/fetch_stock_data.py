@@ -10,8 +10,7 @@ csv_path = Path(settings.BASE_DIR) / "data_model" / "historical_financial_data.c
 
 def read_csv():
     # Define the date parser
-    date_parser = lambda x: pd.to_datetime(x, format='%Y-%m-%d')
-    csv_Data = pd.read_csv(csv_path, index_col=0, parse_dates=True, date_parser=date_parser)
+    csv_Data = csv_Data = pd.read_csv(csv_path, index_col=0, parse_dates=True, date_format="%Y-%m-%d")
     # Reset the index to convert the date from index to a column
     csv_Data.reset_index(inplace=True)
 
