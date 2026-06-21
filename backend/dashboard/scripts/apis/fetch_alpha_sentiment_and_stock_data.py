@@ -1,5 +1,6 @@
 import os
 import json
+import pathlib as Path
 from datetime import datetime
 from collections import defaultdict
 from statistics import mean
@@ -11,12 +12,12 @@ from dashboard.scripts.apis import sentiment_segregation
 
 
 def fetch_alpha_sentiment_and_stock_data(ticker):
-    json_file_path = os.path.join(settings.BASE_DIR, 'data_model', 'user_sentiment.json')
+    json_file_path = Path(settings.BASE_DIR) / "data_model" / "user_sentiment.json"
     sentiment_data = []
     csv_data = fetch_stock_data.read_csv()
     stock_data = []
 
-    if os.path.exists(json_file_path):
+    if json_file_path.exists():
         with open(json_file_path, 'r') as file:
             data = json.load(file)
             ticker_data = data['response_dict'].get(ticker, {})
@@ -89,12 +90,12 @@ def fetch_aggregated_correlation(tickers):
 
 # New function: Calculate lagged correlation for a specific ticker
 def fetch_alpha_sentiment_and_stock_data_with_lag(ticker, max_lag=10):
-    json_file_path = os.path.join(settings.BASE_DIR, 'data_model', 'user_sentiment.json')
+    json_file_path = Path(settings.BASE_DIR) / "data_model" / "user_sentiment.json"
     sentiment_data = []
     csv_data = fetch_stock_data.read_csv()
     stock_data = []
 
-    if os.path.exists(json_file_path):
+    if json_file_path.exists():
         with open(json_file_path, 'r') as file:
             data = json.load(file)
             ticker_data = data['response_dict'].get(ticker, {})

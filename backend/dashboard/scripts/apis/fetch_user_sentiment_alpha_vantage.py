@@ -1,20 +1,21 @@
 import os
 import json
 import time
+from pathlib import Path
 from datetime import datetime, timedelta
 import requests
-from django.conf import settings
 from django.http import JsonResponse
 
-ALPHA_VANTAGE_API_KEY = '3UD403K0HOLS40AD'  # Replace with your actual API key
+from dashboard.scripts.constants import ALPHA_VANTAGE_API_KEY
+from django.conf import settings
 
 
 def fetch_alpha_news_sentiment(tickers):
     # Path to the JSON file
-    json_file_path = os.path.join(settings.BASE_DIR, 'data_model', 'user_sentiment.json')
+    json_file_path = Path(settings.BASE_DIR) / "data_model" / "user_sentiment.json"
 
     # Check if the JSON file exists
-    if os.path.exists(json_file_path):
+    if json_file_path.exists():
         with open(json_file_path, 'r') as file:
             data = json.load(file)
             timestamp = datetime.fromtimestamp(data['timestamp'])

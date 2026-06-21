@@ -1,5 +1,6 @@
 import os
 import json
+from pathlib import Path
 from datetime import datetime
 from collections import defaultdict
 from statistics import mean
@@ -11,15 +12,15 @@ from dashboard.scripts.apis import sentiment_segregation
 
 
 def fetch_sentiment_and_stock_data(ticker):
-    base_dir = os.path.join(settings.BASE_DIR, 'data_model', 'Sentiment JSONs')
+    base_dir = Path(settings.BASE_DIR) / "data_model" / "Sentiment JSONs"
     sentiment_data = []
     csv_data = fetch_stock_data.read_csv()
     stock_data = []
-    files = [f for f in os.listdir(base_dir) if ticker in f]
+    files = [f for f in base_dir.iterdir() if ticker in f.name]
 
     for file_name in files:
-        json_file_path = os.path.join(base_dir, file_name)
-        if os.path.exists(json_file_path):
+        json_file_path = base_dir / file_name
+        if json_file_path.exists():
             with open(json_file_path, 'r') as file:
                 data = json.load(file)
                 sentiment_data.extend(data.get('data', []))
@@ -87,15 +88,15 @@ def fetch_aggregated_correlation(tickers):
 
 
 def fetch_sentiment_and_stock_data_with_lag(ticker, max_lag=10):
-    base_dir = os.path.join(settings.BASE_DIR, 'data_model', 'Sentiment JSONs')
+    base_dir = Path(settings.BASE_DIR) / "data_model" / "Sentiment JSONs"
     sentiment_data = []
     csv_data = fetch_stock_data.read_csv()
     stock_data = []
-    files = [f for f in os.listdir(base_dir) if ticker in f]
+    files = [f for f in base_dir.iterdir() if ticker in f.name]
 
     for file_name in files:
-        json_file_path = os.path.join(base_dir, file_name)
-        if os.path.exists(json_file_path):
+        json_file_path = base_dir / file_name
+        if json_file_path.exists():
             with open(json_file_path, 'r') as file:
                 data = json.load(file)
                 sentiment_data.extend(data.get('data', []))

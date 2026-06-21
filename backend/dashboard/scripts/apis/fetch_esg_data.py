@@ -1,5 +1,5 @@
 import math
-
+from pathlib import Path
 import pandas as pd
 from django.http import JsonResponse
 from django.conf import settings
@@ -63,7 +63,7 @@ def calculate_correlation(esg_dict, stock_price_dict):
 
 
 def get_esg_data(request):
-    esg_csv_file_path = os.path.join(settings.BASE_DIR, 'data_model', 'ESG_Data.csv')
+    esg_csv_file_path = Path(settings.BASE_DIR) / "data_model" / "ESG_Data.csv"
 
     try:
         esg_data = load_esg_data(esg_csv_file_path)
@@ -98,7 +98,7 @@ def calculate_lagged_correlation(esg_dict, stock_price_dict, lag=1):
 
 
 def get_lagged_esg_correlation(request):
-    esg_csv_file_path = os.path.join(settings.BASE_DIR, 'data_model', 'ESG_Data.csv')
+    esg_csv_file_path = Path(settings.BASE_DIR) / "data_model" / "ESG_Data.csv"
     lag = int(request.GET.get('lag', 1))  # Default lag of 1 year if not provided
 
     try:

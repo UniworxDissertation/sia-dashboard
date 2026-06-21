@@ -1,5 +1,7 @@
+from django.conf import settings
 import numpy as np
 import pandas as pd
+from pathlib import Path
 from datetime import datetime, timedelta
 from sklearn.model_selection import train_test_split, ParameterGrid
 from sklearn.ensemble import RandomForestRegressor
@@ -17,9 +19,7 @@ def load_financial_indicators(file_path):
     return indicators
 
 
-csv_path = (os.path.dirname(os.path.abspath(__file__)).replace('scripts\\apis',
-                                                               'data_model/Historical_Financial_Indicators.csv')
-            .replace('\\dashboard', ''))
+csv_path = Path(settings.BASE_DIR) / "data_model" / "Historical_Financial_Indicators.csv"
 
 financial_indicators = load_financial_indicators(csv_path)
 

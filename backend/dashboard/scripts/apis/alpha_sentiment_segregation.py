@@ -1,17 +1,18 @@
 import os
 import json
 from statistics import mean
+import pathlib as Path
 from django.http import JsonResponse
-from django.conf import settings
 
+from django.conf import settings
 from dashboard.scripts.apis.fetch_alpha_sentiment_and_stock_data import fetch_alpha_sentiment_and_stock_data
 
 
 def fetch_news_sentiment(tickers):
     response_dict = {}
 
-    json_file_path = os.path.join(settings.BASE_DIR, 'data_model', 'user_sentiment.json')
-    if os.path.exists(json_file_path):
+    json_file_path = Path(settings.BASE_DIR) / "data_model" / "user_sentiment.json"
+    if json_file_path.exists():
         with open(json_file_path, 'r') as file:
             data = json.load(file)
             for ticker in tickers:

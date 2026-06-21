@@ -1,11 +1,11 @@
+from django.conf import settings
 import pandas as pd
+from pathlib import Path
 import os
 
-from dashboard.scripts.constants import energy_companies, financial_companies
+from dashboard.scripts.constants import ALPHA_VANTAGE_API_KEY, energy_companies, financial_companies
 
-csv_path = (os.path.dirname(os.path.abspath(__file__)).replace('scripts\\apis',
-                                                               'data_model/historical_financial_data.csv')
-            .replace('\\dashboard', ''))
+csv_path = Path(settings.BASE_DIR) / "data_model" / "historical_financial_data.csv"
 
 
 def read_csv():
