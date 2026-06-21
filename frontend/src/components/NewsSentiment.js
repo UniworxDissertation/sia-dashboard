@@ -8,6 +8,8 @@ import { MdClose } from 'react-icons/md';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend } from 'recharts';
 import SentimentCorrelationChart from "./SentimentCorrelationChart";
 
+const TICKERS = ["XOM", "CVX", "NEE", "BP", "SHEL", "JPM", "GS", "BAC", "MS", "WFC"];
+
 const NewsSentiment = () => {
   const [sentiments, setSentiments] = useState([]);
   const [selectedCompany, setSelectedCompany] = useState(null);
@@ -18,10 +20,9 @@ const NewsSentiment = () => {
   const [volatility, setVolatility] = useState(null);
   const [overallCorrelation, setOverallCorrelation] = useState(null);
   const [showGraphs, setShowGraphs] = useState(false);
-  const tickers = ["XOM", "CVX", "NEE", "BP", "SHEL", "JPM", "GS", "BAC", "MS", "WFC"]; // Example tickers
 
   useEffect(() => {
-    const tickersString = tickers.join(', ');
+    const tickersString = TICKERS.join(', ');
     axios.get('https://sia-api.azurewebsites.net/api/process-sentiment/', {
       params: {
         tickers: tickersString

@@ -7,6 +7,7 @@ import { FaInfoCircle } from 'react-icons/fa';
 import { MdClose } from 'react-icons/md';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend } from 'recharts';
 import AlphaSentimentCorrelationChart from "./AlphaSentimentCorrelationChart";  // New component for correlation by lag
+const TICKERS = ["XOM", "CVX", "NEE", "BP", "SHEL", "JPM", "GS", "BAC", "MS", "WFC"];
 
 const MarketSentiments = () => {
   const [sentiments, setSentiments] = useState([]);
@@ -22,10 +23,9 @@ const MarketSentiments = () => {
   const [optimalLag, setOptimalLag] = useState(null);
   const [optimalCorrelation, setOptimalCorrelation] = useState(null);
   const [loading, setLoading] = useState(true);  // Add loading state
-  const tickers = ["XOM", "CVX", "NEE", "BP", "SHEL", "JPM", "GS", "BAC", "MS", "WFC"]; // Example tickers
 
   useEffect(() => {
-    const tickersString = tickers.join(',');
+    const tickersString = TICKERS.join(',');
     axios.get('https://sia-api.azurewebsites.net/api/process-alphasentiment/', {
       params: {
         tickers: tickersString
