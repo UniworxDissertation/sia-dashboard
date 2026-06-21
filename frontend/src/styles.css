@@ -295,3 +295,38 @@ a {
 .zero-allocation {
   margin-top: 20px;
 }
+
+.info-tooltip-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.info-tooltip-wrapper .tooltip_content {
+  display: none;
+  position: absolute;
+  top: 24px;
+  left: 10px;
+  z-index: 9999;
+  width: 320px;
+  background: #fff;
+  color: #333;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.info-tooltip-wrapper:hover .tooltip_content {
+  display: block;
+}
+
+.info-tooltip-wrapper .tooltip_content p {
+  margin: 0 0 8px;
+}
+
+.info-tooltip-wrapper .tooltip_content a {
+  display: inline-block;
+  margin-top: 4px;
+}

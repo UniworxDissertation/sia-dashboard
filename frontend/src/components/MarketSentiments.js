@@ -5,7 +5,6 @@ import Header from './Header';
 import PortfolioInsights from "./PortfolioInsights";
 import { FaInfoCircle } from 'react-icons/fa';
 import { MdClose } from 'react-icons/md';
-import Tooltip from 'react-tooltip-lite';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend } from 'recharts';
 import AlphaSentimentCorrelationChart from "./AlphaSentimentCorrelationChart";  // New component for correlation by lag
 
@@ -113,18 +112,24 @@ return (
     <Header />
     <h2>
       Market Sentiments
-      <Tooltip content={
-        <div className={"tooltip_content"}>
+      <span className="info-tooltip-wrapper">
+        <FaInfoCircle style={{ marginLeft: '10px', cursor: 'pointer' }} />
+
+        <div className="tooltip_content">
           <p><strong>Bearish:</strong> Expect a decline in stock price.</p>
           <p><strong>Somewhat-Bearish:</strong> Expect a slight decline in stock price.</p>
           <p><strong>Neutral:</strong> Expect little to no change in stock price.</p>
           <p><strong>Somewhat-Bullish:</strong> Expect a slight increase in stock price.</p>
           <p><strong>Bullish:</strong> Expect a significant increase in stock price.</p>
-          <a href="https://www.investopedia.com/terms/b/bullish.asp" target="_blank" rel="noopener noreferrer">Learn more</a>
+          <a
+            href="https://www.investopedia.com/terms/b/bullish.asp"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Learn more
+          </a>
         </div>
-      }>
-        <FaInfoCircle style={{ marginLeft: '10px', cursor: 'pointer' }} />
-      </Tooltip>
+      </span>
     </h2>
     <div className="sentiment-cards">
       {Object.keys(sentiments).map(ticker => (
