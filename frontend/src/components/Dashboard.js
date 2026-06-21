@@ -17,7 +17,7 @@ const Dashboard = () => {
   const [endDate, setEndDate] = useState(new Date());
 
   useEffect(() => {
-    axios.get('http://localhost:8000/api/stock-data/')
+    axios.get('https://sia-api.azurewebsites.net/api/stock-data/')
       .then(response => {
         setData(response.data);
         const companyList = [...new Set(response.data.map(item => item.symbol))];

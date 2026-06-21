@@ -22,7 +22,7 @@ const NewsSentiment = () => {
 
   useEffect(() => {
     const tickersString = tickers.join(', ');
-    axios.get('http://localhost:8000/api/process-sentiment/', {
+    axios.get('https://sia-api.azurewebsites.net/api/process-sentiment/', {
       params: {
         tickers: tickersString
       }
@@ -41,7 +41,7 @@ const NewsSentiment = () => {
     setShowGraphs(true);
 
     // Fetch sentiment data for the selected company
-    axios.get(`http://localhost:8000/api/sentiment-data/`, {
+    axios.get(`https://sia-api.azurewebsites.net/api/sentiment-data/`, {
       params: {
         ticker: company
       }

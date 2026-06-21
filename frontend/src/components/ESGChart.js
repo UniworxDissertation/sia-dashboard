@@ -10,7 +10,7 @@ const ESGChart = ({ selectedTicker }) => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get('http://127.0.0.1:8000/api/get-esg-data/');
+        const response = await axios.get('https://sia-api.azurewebsites.net/api/get-esg-data/');
         setData(response.data);
         setLoading(false);
       } catch (error) {

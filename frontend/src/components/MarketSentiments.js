@@ -26,7 +26,7 @@ const MarketSentiments = () => {
 
   useEffect(() => {
     const tickersString = tickers.join(',');
-    axios.get('http://localhost:8000/api/process-alphasentiment/', {
+    axios.get('https://sia-api.azurewebsites.net/api/process-alphasentiment/', {
       params: {
         tickers: tickersString
       }
@@ -48,7 +48,7 @@ const MarketSentiments = () => {
     setLoading(true);  // Set loading to true when fetching company-specific data
 
     // Fetch sentiment data for the selected company
-    axios.get(`http://localhost:8000/api/alphasentiment-data-with-lag/`, {  // Updated endpoint
+    axios.get(`https://sia-api.azurewebsites.net/api/alphasentiment-data-with-lag/`, {  // Updated endpoint
       params: {
         ticker: company,
         max_lag: 10  // Example: max lag of 10 days

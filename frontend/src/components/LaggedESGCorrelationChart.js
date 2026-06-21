@@ -10,7 +10,7 @@ const LaggedESGCorrelationChart = () => {
   useEffect(() => {
     const fetchLaggedCorrelationData = async () => {
       try {
-        const response = await axios.get(`http://127.0.0.1:8000/api/get-lagged-esg-correlation/?lag=${lag}`);
+        const response = await axios.get(`https://sia-api.azurewebsites.net/api/get-lagged-esg-correlation/?lag=${lag}`);
         const data = response.data.correlations;
         const formattedData = Object.keys(data).map(symbol => ({
           symbol,

@@ -15,7 +15,7 @@ const PortfolioInsights = () => {
 
   const fetchPortfolioData = (profile, start, end) => {
     setLoading(true);  // Set loading to true when starting the API call
-    axios.get('http://localhost:8000/api/portfolio-insights/', {
+    axios.get('https://sia-api.azurewebsites.net/api/portfolio-insights/', {
       params: { risk_profile: profile, start_date: start, end_date: end }
     })
     .then(response => {

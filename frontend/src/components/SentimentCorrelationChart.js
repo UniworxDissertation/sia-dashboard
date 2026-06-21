@@ -11,7 +11,7 @@ const SentimentCorrelationChart = ({ selectedTicker }) => {
   useEffect(() => {
     const fetchCorrelationData = async () => {
       try {
-        const response = await axios.get(`http://127.0.0.1:8000/api/get-sentiment-correlation-with-lag/${selectedTicker}`);
+        const response = await axios.get(`https://sia-api.azurewebsites.net/api/get-sentiment-correlation-with-lag/${selectedTicker}`);
         const { correlations_by_lag, optimal_lag, optimal_correlation } = response.data;
 
         // Convert the correlations_by_lag object to a format suitable for charting
