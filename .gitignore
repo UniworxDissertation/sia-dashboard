@@ -7,7 +7,6 @@
 .pnp.js
 backend/staticfiles/admin
 backend/.venv
-backend/venv
 package-lock.json
 
 # testing
