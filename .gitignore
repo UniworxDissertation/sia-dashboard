@@ -8,7 +8,7 @@
 backend/staticfiles/admin
 backend/.venv
 package-lock.json
-
+.vscode
 # testing
 /coverage
 

@@ -25,23 +25,79 @@ financial_indicators = load_financial_indicators(csv_path)
 
 
 def merge_stock_and_indicators(stock_data, indicators):
-    stock_data['date'] = pd.to_datetime(stock_data['date'])
-    merged_data = stock_data.merge(indicators, on=['date', 'symbol'], how='left')
-    merged_data.fillna(merged_data.mean(), inplace=True)
+    stock_data = stock_data.copy()
+
+    stock_data["date"] = pd.to_datetime(stock_data["date"])
+    stock_data["symbol"] = stock_data["symbol"].astype(str)
+
+    indicators = indicators.reset_index()
+    indicators["date"] = pd.to_datetime(indicators["date"])
+    indicators["symbol"] = indicators["symbol"].astype(str)
+
+    merged_data = stock_data.merge(
+        indicators,
+        on=["date", "symbol"],
+        how="left"
+    )
+
+    feature_cols = ["volume", "EPS", "PE", "ROE", "ROA", "ROI"]
+
+    for col in feature_cols:
+        merged_data[col] = pd.to_numeric(merged_data[col], errors="coerce")
+
+    merged_data[feature_cols] = merged_data[feature_cols].fillna(
+        merged_data[feature_cols].mean()
+    )
+
     return merged_data
 
 
 def train_model(merged_data):
-    features = ['volume', 'EPS', 'PE', 'ROE', 'ROA', 'ROI']
-    X = merged_data[features]
-    y = merged_data['close'].shift(-1).fillna(method='ffill')
+    features = ["volume", "EPS", "PE", "ROE", "ROA", "ROI"]
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    model = RandomForestRegressor(n_estimators=100, min_samples_split=2, max_depth=10, random_state=42)
+    data = merged_data.copy()
+
+    data["date"] = pd.to_datetime(data["date"])
+    data = data.sort_values(["symbol", "date"])
+
+    for col in features + ["close"]:
+        data[col] = pd.to_numeric(data[col], errors="coerce")
+
+    # Predict next available close price for the same symbol
+    data["target_close"] = data.groupby("symbol")["close"].shift(-1)
+
+    # Remove rows where features or target are missing
+    model_data = data.dropna(subset=features + ["target_close"]).copy()
+
+    if model_data.empty:
+        raise ValueError("No valid data available to train the portfolio model.")
+
+    X = model_data[features]
+    y = model_data["target_close"]
+
+    # Time-aware split instead of random split
+    split_index = int(len(model_data) * 0.8)
+
+    X_train = X.iloc[:split_index]
+    y_train = y.iloc[:split_index]
+
+    model = RandomForestRegressor(
+        n_estimators=100,
+        min_samples_split=2,
+        max_depth=10,
+        random_state=42
+    )
+
     model.fit(X_train, y_train)
 
-    merged_data['predicted_close'] = model.predict(X)
-    return model
+    # Predict for all valid rows
+    model_data["predicted_close"] = model.predict(X)
+
+    # Add predictions back to the original merged data
+    data["predicted_close"] = np.nan
+    data.loc[model_data.index, "predicted_close"] = model_data["predicted_close"]
+
+    return model, data
 
 
 def forecast_volatility_garch(symbol_data, num_days):
@@ -216,7 +272,7 @@ def portfolio_insights(request):
     np.random.seed(42)
     data = fetch_stock_data.read_csv()
     merged_data = merge_stock_and_indicators(data, financial_indicators)
-    model = train_model(merged_data)
+    model, merged_data = train_model(merged_data)
 
     close_prices = merged_data.pivot(index='date', columns='symbol', values='close')
     returns = close_prices.pct_change().dropna()
@@ -297,7 +353,7 @@ risk_free_rates = [0.005, 0.015, 0.03]
 def backtest_portfolio_insights(request, num_portfolios, risk_free_rate):
     data = fetch_stock_data.read_csv()
     merged_data = merge_stock_and_indicators(data, financial_indicators)
-    model = train_model(merged_data)
+    model, merged_data = train_model(merged_data)
 
     close_prices = merged_data.pivot(index='date', columns='symbol', values='close')
     returns = close_prices.pct_change().dropna()
